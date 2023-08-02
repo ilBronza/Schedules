@@ -1,0 +1,40 @@
+{
+    "name": "ilbronza/schedules",
+    "description": "schedules and deadlines for laravel",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Davide Bronzini",
+            "email": "davide_bronzini@hotmail.com",
+            "homepage": "https://sistema.srl"
+        }
+    ],
+    "homepage": "https://github.com/ilbronza/schedules",
+    "keywords": ["Laravel", "Schedules"],
+    "require": {
+    },
+    "require-dev": {
+        "phpunit/phpunit": "~9.0",
+        "orchestra/testbench": "~7"
+    },
+    "autoload": {
+        "psr-4": {
+            "IlBronza\\Schedules\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "IlBronza\\Schedules\\Tests\\": "tests"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "IlBronza\\Schedules\\SchedulesServiceProvider"
+            ],
+            "aliases": {
+                "Schedules": "IlBronza\\Schedules\\Facades\\Schedules"
+            }
+        }
+    }
+}
