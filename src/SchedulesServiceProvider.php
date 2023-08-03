@@ -15,8 +15,8 @@ class SchedulesServiceProvider extends ServiceProvider
     {
         // $this->loadTranslationsFrom(__DIR__.'/../resources/lang', 'ilbronza');
         // $this->loadViewsFrom(__DIR__.'/../resources/views', 'ilbronza');
-        // $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
-        // $this->loadRoutesFrom(__DIR__.'/routes.php');
+        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+        $this->loadRoutesFrom(__DIR__.'/../routes/schedules.php');
 
         // Publishing is only necessary when using the CLI.
         if ($this->app->runningInConsole()) {
