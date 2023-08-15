@@ -3,11 +3,14 @@
 use App\Models\ProjectSpecific\User;
 use IlBronza\Schedules\Http\Controllers\MeasurementUnits\MeasurementUnitCrudController;
 use IlBronza\Schedules\Http\Controllers\Providers\FieldsGroups\MeasurementUnitFieldsGroupParametersFile;
+use IlBronza\Schedules\Http\Controllers\Providers\FieldsGroups\TypeApplicableModelsFieldsGroupParametersFile;
 use IlBronza\Schedules\Http\Controllers\Providers\FieldsGroups\TypeFieldsGroupParametersFile;
 use IlBronza\Schedules\Http\Controllers\Providers\Fieldsets\MeasurementUnitCreateStoreFieldsetsParameters;
 use IlBronza\Schedules\Http\Controllers\Providers\Fieldsets\MeasurementUnitEditUpdateFieldsetsParameters;
 use IlBronza\Schedules\Http\Controllers\Providers\Fieldsets\TypeCreateStoreFieldsetsParameters;
+use IlBronza\Schedules\Http\Controllers\Providers\Fieldsets\TypeEditUpdateFieldsetsParameters;
 use IlBronza\Schedules\Http\Controllers\Providers\RelationshipsManagers\MeasurementUnitRelationManager;
+use IlBronza\Schedules\Http\Controllers\Types\TypeApplicateController;
 use IlBronza\Schedules\Http\Controllers\Types\TypeCrudController;
 use IlBronza\Schedules\Models\MeasurementUnit;
 use IlBronza\Schedules\Models\Type;
@@ -23,29 +26,29 @@ return [
     ],
 
     'models' => [
-        'measurementUnit' => [
-            'class' => MeasurementUnit::class,
-            'table' => 'schedules__measurement_units',
-            'fieldsGroupsFiles' => [
-                'index' => MeasurementUnitFieldsGroupParametersFile::class
-            ],
-            'relationshipsManagerClasses' => [
-                'show' => MeasurementUnitRelationManager::class
-            ],
-            'parametersFiles' => [
-                'create' => MeasurementUnitCreateStoreFieldsetsParameters::class,
-                'edit' => MeasurementUnitEditUpdateFieldsetsParameters::class
-            ],
-            'controllers' => [
-                'index' => MeasurementUnitCrudController::class,
-                'create' => MeasurementUnitCrudController::class,
-                'store' => MeasurementUnitCrudController::class,
-                'show' => MeasurementUnitCrudController::class,
-                'edit' => MeasurementUnitCrudController::class,
-                'update' => MeasurementUnitCrudController::class,
-                'destroy' => MeasurementUnitCrudController::class,
-            ]
-        ],
+        // 'measurementUnit' => [
+        //     'class' => MeasurementUnit::class,
+        //     'table' => 'schedules__measurement_units',
+        //     'fieldsGroupsFiles' => [
+        //         'index' => MeasurementUnitFieldsGroupParametersFile::class
+        //     ],
+        //     'relationshipsManagerClasses' => [
+        //         'show' => MeasurementUnitRelationManager::class
+        //     ],
+        //     'parametersFiles' => [
+        //         'create' => MeasurementUnitCreateStoreFieldsetsParameters::class,
+        //         'edit' => MeasurementUnitEditUpdateFieldsetsParameters::class
+        //     ],
+        //     'controllers' => [
+        //         'index' => MeasurementUnitCrudController::class,
+        //         'create' => MeasurementUnitCrudController::class,
+        //         'store' => MeasurementUnitCrudController::class,
+        //         'show' => MeasurementUnitCrudController::class,
+        //         'edit' => MeasurementUnitCrudController::class,
+        //         'update' => MeasurementUnitCrudController::class,
+        //         'destroy' => MeasurementUnitCrudController::class,
+        //     ]
+        // ],
         'scheduledNotifications' => [
             'class' => ScheduledNotification::class,
             'table' => 'schedules__scheduled_notifications',
@@ -94,15 +97,18 @@ return [
             'class' => Type::class,
             'table' => 'schedules__types',
             'fieldsGroupsFiles' => [
-                'index' => TypeFieldsGroupParametersFile::class
+                'index' => TypeFieldsGroupParametersFile::class,
+                'applicableModels' => TypeApplicableModelsFieldsGroupParametersFile::class
             ],
             // 'relationshipsManagerClasses' => [
             //     'show' => TypeRelationManager::class
             // ],
             'parametersFiles' => [
-                'create' => TypeCreateStoreFieldsetsParameters::class
+                'create' => TypeCreateStoreFieldsetsParameters::class,
+                'edit' => TypeEditUpdateFieldsetsParameters::class
             ],
             'controllers' => [
+                'applicate' => TypeApplicateController::class,
                 'index' => TypeCrudController::class,
                 'create' => TypeCrudController::class,
                 'store' => TypeCrudController::class,

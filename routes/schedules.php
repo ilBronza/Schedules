@@ -12,6 +12,9 @@ Route::group([
 
 Route::group(['prefix' => 'types'], function()
 {
+	Route::get('applicate/{type}', [Schedules::getController('type', 'applicate'), 'index'])->name('types.applicate.index');
+
+
 	Route::get('', [Schedules::getController('type', 'index'), 'index'])->name('types.index');
 	Route::get('create', [Schedules::getController('type', 'create'), 'create'])->name('types.create');
 	Route::post('', [Schedules::getController('type', 'store'), 'store'])->name('types.store');

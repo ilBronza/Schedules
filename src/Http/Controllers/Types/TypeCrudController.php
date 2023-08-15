@@ -35,12 +35,12 @@ class TypeCrudController extends CrudSchedulesCrudController
         'destroy'
 	];
 
-    public function getGenericParametersFile() : ? string
+    public function getCreateParametersFile() : ? string
     {
         return config($this->getBaseConfigName() . ".models.$this->configModelClassName.parametersFiles.create");
     }
 
-    public function getEditParametersFile() : ? string
+    public function getGenericParametersFile() : ? string
     {
         return config($this->getBaseConfigName() . ".models.$this->configModelClassName.parametersFiles.edit");
     }
@@ -58,6 +58,11 @@ class TypeCrudController extends CrudSchedulesCrudController
     public function getRelationshipsManagerClass()
     {
         return config($this->getBaseConfigName() . ".models.{$this->configModelClassName}.relationshipsManagerClasses.show");
+    }
+
+    public function setShowButtons()
+    {
+        $this->showButtons[] = $this->getModel()->getApplicateButton();
     }
 
     public function show(string $type)
