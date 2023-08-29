@@ -5,6 +5,7 @@ namespace IlBronza\Schedules\Models;
 use IlBronza\Buttons\Button;
 use IlBronza\FormField\Casts\JsonFieldCast;
 use IlBronza\MeasurementUnits\Models\MeasurementUnit;
+use IlBronza\Schedules\Models\Schedule;
 use Illuminate\Support\Str;
 
 class ModelCast
@@ -34,12 +35,27 @@ class Type extends SchedulePackageBaseModel
         'notifications' => JsonFieldCast::class
     ];
 
-    public function measurementUnit()
+    public function getTranslatedName()
     {
-    	return $this->belongsTo(MeasurementUnit::getProjectClassName());
+        return $this->getName();
     }
 
-    public function getApplicateUrl() : string
+    public function measurementUnit()
+    {
+        return $this->belongsTo(MeasurementUnit::getProjectClassName());
+    }
+
+    public function getMeasurementUnit() : MeasurementUnit
+    {
+        return $this->measurementUnit;
+    }
+
+    public function schedules()
+    {
+        return $this->hasMany(Schedule::getProjectClassName());
+    }
+
+    public function getApplicateIndexUrl() : string
     {
         return $this->getKeyedRoute('applicate.index');
     }
@@ -47,16 +63,16 @@ class Type extends SchedulePackageBaseModel
     public function getApplicateButton() : Button
     {
         return Button::create([
-            'href' => $this->getApplicateUrl(),
+            'href' => $this->getApplicateIndexUrl(),
             'text' => 'schedules::schedule.applicate',
             'icon' => 'calendar'
         ]);
     }
 
-    public function getModels() : array
-    {
-        return $this->models;
-    }
+    // public function getModels() : array
+    // {
+    //     return $this->models;
+    // }
 
     public function getAvailableModels() : array
     {
@@ -65,7 +81,12 @@ class Type extends SchedulePackageBaseModel
                 $item = new ModelCast($_item);
 
                 return $item->getModel();
-            }, $this->getModels());
+            }, $this->models);
+    }
+
+    public function getModelsValue()
+    {
+        return $this->models;
     }
 
     public function getTargetScopeNameMethodName() : string
@@ -76,5 +97,21 @@ class Type extends SchedulePackageBaseModel
     public function getTargetScopeName() : string
     {
         return Str::studly($this->getName());
+    }
+
+    public function calculateDeadlineValue(mixed $startingValue)
+    {
+        $measurementUnit = $this->getMeasurementUnit();
+
+        $measurementUnitHelper = $measurementUnit->getHelper();
+
+        die("pescare unità di misura, trovare la conversione con l'helper, chiamare l'helper per fare la somma o eventuale cosa. Salut!");
+
+        dd($measurementUnit);
+
+        dd($this);
+
+        dd($measurementUnitHelper);
+        dd($this);
     }
 }

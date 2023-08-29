@@ -12,6 +12,12 @@ Route::group([
 
 Route::group(['prefix' => 'types'], function()
 {
+	Route::get('applicate/{type}/models/{classname}', [Schedules::getController('type', 'applicateClassname'), 'index'])->name('types.applicate.classname.index');
+	Route::post('applicate/{type}/models/{classname}', [Schedules::getController('type', 'applicateClassname'), 'store'])->name('types.applicate.classname.store');
+
+
+
+
 	Route::get('applicate/{type}', [Schedules::getController('type', 'applicate'), 'index'])->name('types.applicate.index');
 
 

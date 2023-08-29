@@ -13,6 +13,10 @@ class TypeApplicableModelsFieldsGroupParametersFile extends FieldsGroupParameter
             [
                 'mySelfPrimary' => 'primary',
                 'schedulable_model_name' => 'flat',
+                'mySelfApplicate' => [
+                    'type' => 'links.link',
+                    'function' => 'getApplicateModelIndexUrl'
+                ],
                 'mySelfElements' => [
                     'type' => 'function',
                     'function' => 'getSchedulableElementsCount',

@@ -2,6 +2,8 @@
 
 namespace IlBronza\Schedules\Traits;
 
+use IlBronza\CRUD\Providers\RouterProvider\IbRouter;
+use IlBronza\Schedules\Models\Schedule;
 use IlBronza\Schedules\Models\Type;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -10,7 +12,77 @@ trait InteractsWithSchedule
 {
     public Type $applicatingSchedule;
 
+    /**
+     * returns name for the model to appear 
+     * in the possible schedulable model list
+     * for the type application index method
+     * 
+     * es. Vehicle::getSchedulableModelNameAttribute() : string 'Veicolo'
+     **/
     abstract function getSchedulableModelNameAttribute() : string;
+
+    // /**
+    //  * returns an array to populate 
+    //  * the possible schedulable elements columns
+    //  * in application table
+    //  * 
+    //  * es. Vehicle::getSchedulableModelTableFieldsArray : array [
+    //  * 
+    //         'fields' => 
+    //         [
+    //             'mySelfPrimary' => 'primary',
+    //             'mySelfEdit' => 'links.edit',
+    //             'mySelfSee' => 'links.see',
+    //             'mySelfApplicate' => [
+    //                 'type' => 'links.link',
+    //                 'function' => 'getApplicateIndexUrl'
+    //             ],
+
+    //             'id' => 'flat',
+    //             'name' => 'flat',
+    //             'description' => 'flat',
+
+    //             'mySelfDelete' => 'links.delete'
+    //         ]
+    //  * ]
+    //  **/
+    public function getSchedulableModelTableFieldsArray() : array
+    {
+        return [
+            'fields' => [
+            ]
+        ];
+    }
+
+    public function schedules()
+    {
+        return $this->morphMany(Schedule::class, 'schedulable');
+    }
+
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'subscribers', 'subscribale_id', 'user_id')
+            ->where('subscribale_type', static::class);
+    }
+
+    public function scheduleTypes()
+    {
+        return $this->belongsToMany(Type::class, config('schedules.models.schedule.table'), 'schedulable_id', 'type_id')
+                ->where('schedulable_type', static::class);
+    }
+
+    public function getApplicatedScheduleTypes() : Collection
+    {
+        return $this->scheduleTypes()->get();
+    }
+
+    public function getApplicateModelIndexUrl()
+    {
+        return IbRouter::route(app('schedules'), 'types.applicate.classname.index', [
+            'type' => $this->getApplicatingScheduleType()->getKey(),
+            'classname' => get_class($this)
+        ]);
+    }
 
     public function getSchedulableElementsQuery() : Builder
     {
@@ -36,7 +108,7 @@ trait InteractsWithSchedule
         return $this->applicatingSchedule;
     }
 
-    public function getSchedulableElementsCount() : Builder
+    public function getSchedulableElementsCount() : int
     {
         return $this->getSchedulableElementsQuery()->count();
     }

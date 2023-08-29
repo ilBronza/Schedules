@@ -3,6 +3,7 @@
 use App\Models\ProjectSpecific\User;
 use IlBronza\Schedules\Http\Controllers\MeasurementUnits\MeasurementUnitCrudController;
 use IlBronza\Schedules\Http\Controllers\Providers\FieldsGroups\MeasurementUnitFieldsGroupParametersFile;
+use IlBronza\Schedules\Http\Controllers\Providers\FieldsGroups\TypeApplicableModelsElementsFieldsGroupParametersFile;
 use IlBronza\Schedules\Http\Controllers\Providers\FieldsGroups\TypeApplicableModelsFieldsGroupParametersFile;
 use IlBronza\Schedules\Http\Controllers\Providers\FieldsGroups\TypeFieldsGroupParametersFile;
 use IlBronza\Schedules\Http\Controllers\Providers\Fieldsets\MeasurementUnitCreateStoreFieldsetsParameters;
@@ -10,9 +11,11 @@ use IlBronza\Schedules\Http\Controllers\Providers\Fieldsets\MeasurementUnitEditU
 use IlBronza\Schedules\Http\Controllers\Providers\Fieldsets\TypeCreateStoreFieldsetsParameters;
 use IlBronza\Schedules\Http\Controllers\Providers\Fieldsets\TypeEditUpdateFieldsetsParameters;
 use IlBronza\Schedules\Http\Controllers\Providers\RelationshipsManagers\MeasurementUnitRelationManager;
+use IlBronza\Schedules\Http\Controllers\Types\TypeApplicateClassnameController;
 use IlBronza\Schedules\Http\Controllers\Types\TypeApplicateController;
 use IlBronza\Schedules\Http\Controllers\Types\TypeCrudController;
 use IlBronza\Schedules\Models\MeasurementUnit;
+use IlBronza\Schedules\Models\Schedule;
 use IlBronza\Schedules\Models\Type;
 use IlBronza\Vehicles\Models\Vehicle;
 
@@ -98,7 +101,8 @@ return [
             'table' => 'schedules__types',
             'fieldsGroupsFiles' => [
                 'index' => TypeFieldsGroupParametersFile::class,
-                'applicableModels' => TypeApplicableModelsFieldsGroupParametersFile::class
+                'applicableModels' => TypeApplicableModelsFieldsGroupParametersFile::class,
+                'applicableModelsElements' => TypeApplicableModelsElementsFieldsGroupParametersFile::class,
             ],
             // 'relationshipsManagerClasses' => [
             //     'show' => TypeRelationManager::class
@@ -109,6 +113,7 @@ return [
             ],
             'controllers' => [
                 'applicate' => TypeApplicateController::class,
+                'applicateClassname' => TypeApplicateClassnameController::class,
                 'index' => TypeCrudController::class,
                 'create' => TypeCrudController::class,
                 'store' => TypeCrudController::class,

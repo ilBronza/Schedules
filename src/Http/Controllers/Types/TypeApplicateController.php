@@ -12,6 +12,7 @@ class TypeApplicateController extends CrudSchedulesCrudController
     use CRUDIndexTrait;
 
     public $configModelClassName = 'type';
+    public $avoidCreateButton = true;
 
 	public $allowedMethods = [
 		'index',

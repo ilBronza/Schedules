@@ -14,7 +14,10 @@ class TypeFieldsGroupParametersFile extends FieldsGroupParametersFile
                 'mySelfPrimary' => 'primary',
                 'mySelfEdit' => 'links.edit',
                 'mySelfSee' => 'links.see',
-
+                'mySelfApplicate' => [
+                    'type' => 'links.link',
+                    'function' => 'getApplicateIndexUrl'
+                ],
 
                 'id' => 'flat',
                 'name' => 'flat',

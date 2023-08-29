@@ -32,5 +32,10 @@ class SchedulePackageBaseModel extends BaseModel
         return config("schedules.models.{$this->getModelConfigPrefix()}.table");
     }
 
+    static function getByKey(string $id) : static
+    {
+        return static::getProjectClassName()::find($id);
+    }
+
     
 }
