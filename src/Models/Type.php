@@ -6,6 +6,8 @@ use IlBronza\Buttons\Button;
 use IlBronza\FormField\Casts\JsonFieldCast;
 use IlBronza\MeasurementUnits\Models\MeasurementUnit;
 use IlBronza\Schedules\Models\Schedule;
+use IlBronza\Schedules\Models\TypeNotification;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 class ModelCast
@@ -32,8 +34,17 @@ class Type extends SchedulePackageBaseModel
     protected $casts = [
         'models' => JsonFieldCast::class,
         'roles' => JsonFieldCast::class,
-        'notifications' => JsonFieldCast::class
     ];
+
+    public function typeNotifications()
+    {
+        return $this->hasMany(TypeNotification::class)->orderByRaw('CONVERT(`before`, SIGNED) desc');
+    }
+
+    public function getTypeNotifications() : Collection
+    {
+        return $this->typeNotifications;
+    }
 
     public function getTranslatedName()
     {
@@ -60,6 +71,21 @@ class Type extends SchedulePackageBaseModel
         return $this->getKeyedRoute('applicate.index');
     }
 
+    public function getCreateNotificationTypeUrl()
+    {
+        return route(config('schedules.routePrefix') . 'types.typeNotifications.create', ['type' => $this]);
+    }
+
+    public function getCreateNotificationTypeButton() : Button
+    {
+        return Button::create([
+            'href' => $this->getCreateNotificationTypeUrl(),
+            'text' => trans('notificationType.create'),
+            'icon' => 'location'
+        ]);
+    }
+
+
     public function getApplicateButton() : Button
     {
         return Button::create([
@@ -69,10 +95,10 @@ class Type extends SchedulePackageBaseModel
         ]);
     }
 
-    // public function getModels() : array
-    // {
-    //     return $this->models;
-    // }
+    public function getValidity() : string
+    {
+        return $this->validity;
+    }
 
     public function getAvailableModels() : array
     {
@@ -103,15 +129,15 @@ class Type extends SchedulePackageBaseModel
     {
         $measurementUnit = $this->getMeasurementUnit();
 
-        $measurementUnitHelper = $measurementUnit->getHelper();
-
-        die("pescare unità di misura, trovare la conversione con l'helper, chiamare l'helper per fare la somma o eventuale cosa. Salut!");
-
-        dd($measurementUnit);
-
-        dd($this);
-
-        dd($measurementUnitHelper);
-        dd($this);
+        return $measurementUnit->getDeadlineValue(
+            $startingValue,
+            $this->getValidity()
+        );
     }
+
+    public function allowMultiple() : bool
+    {
+        return !! $this->allow_multiple;
+    }
+
 }

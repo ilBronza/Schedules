@@ -13,11 +13,11 @@ class TypeApplicableModelsElementsFieldsGroupParametersFile extends FieldsGroupP
             [
                 'mySelfPrimary' => 'primary',
                 'name' => 'flat',
+                'schedules' => 'relations.hasMany',
                 'mySelfScheduleTypes' => [
                     'type' => 'iterators.list',
-                    'function' => 'getApplicatedScheduleTypes'
-                ],
-                'id' => 'flat'
+                    'function' => 'getApplicatedScheduleTypesList'
+                ]
             ]
         ];
 	}

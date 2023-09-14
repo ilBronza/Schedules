@@ -21,9 +21,10 @@ class CreateSchedulesTypesTable extends Migration
             $table->string('measurement_unit_id', 16);
             $table->foreign('measurement_unit_id')->references('id')->on(config('measurementUnits.models.measurementUnit.table'));
 
+            $table->boolean('allow_multiple')->nullable();
+
             $table->json('roles')->nullable();
             $table->json('models')->nullable();
-            $table->json('notifications')->nullable();
 
             $table->softDeletes();
             $table->timestamps();

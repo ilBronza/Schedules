@@ -2,6 +2,7 @@
 
 namespace IlBronza\Schedules\Helpers;
 
+use IlBronza\Schedules\Helpers\ScheduleTypeNotificationHelper;
 use IlBronza\Schedules\Models\Schedule;
 use IlBronza\Schedules\Models\Type;
 use Illuminate\Database\Eloquent\Model;
@@ -11,11 +12,27 @@ class ScheduleApplicatorHelper
 {
 	public Type $type;
 	public Model $model;
+	public Schedule $schedule;
 
 	public function __construct(Type $type, Model $model)
 	{
 		$this->type = $type;
 		$this->model = $model;
+
+		$this->initializeSchedule();
+	}
+
+	static function getCurrentValueFromSchedule(Schedule $schedule)
+	{
+		$helper = new static($schedule->getType(), $schedule->getSchedulable());
+
+		return $helper->getModelScheduleCurrentValue();
+	}
+
+	public function initializeSchedule()
+	{
+		$this->schedule = Schedule::getProjectClassName()::make();
+		$this->schedule->setType($this->getType());		
 	}
 
 	public function getType() : Type
@@ -40,7 +57,17 @@ class ScheduleApplicatorHelper
 		return get_class($this->getModel());
 	}
 
-	public function getValueGetterMethod()
+	/**
+	 * return starting value getter method form given model
+	 * 
+	 * if explicitly declared return $parameters['method'] value
+	 * if not declared return calculated accessor name
+	 * from $parameters['source'] field,
+	 * ex current_km becomes getCurrentKmAttribute()
+	 * 
+	 * @return string
+	 **/
+	public function getModelSchedulesCurrentValueGetterMethod() : string
 	{
 		$modelsList = $this->getType()->getModelsValue();
 
@@ -57,40 +84,53 @@ class ScheduleApplicatorHelper
 		throw new \Exception('Model ' . $this->getModelClass() . ' not available for schedule ' . $this->getType()->getName());
 	}
 
-	public function getStartingValue()
+	public function getModelSchedulesStartingValueGetterMethod() : string
 	{
-		$valueGetterMethod = $this->getValueGetterMethod();
+		return $this->getModelSchedulesCurrentValueGetterMethod();
+	}
+
+	public function getModelScheduleStartingValue() : mixed
+	{
+		$valueGetterMethod = $this->getModelSchedulesStartingValueGetterMethod();
 
 		return $this->getModel()->{$valueGetterMethod}();
 	}
 
-	// public function calculateDeadlineValue()
-	// {
-	// 	$startingValue = $this->getStartingValue();
+	public function getModelScheduleCurrentValue() : mixed
+	{
+		$valueGetterMethod = $this->getModelSchedulesCurrentValueGetterMethod();
 
-	// 	return $this->getType()->calculateDeadlineValue($startingValue);
-	// }
+		return $this->getModel()->{$valueGetterMethod}();
+	}
+
+	public function modelHasSchedule() : bool
+	{
+		return count($this->getModel()->getCurrentSchedulesByType(
+			$this->getType()
+		)) > 0;
+	}
 
 	public function applicate()
 	{
-		$startingValue = $this->getStartingValue();
+		if(! $this->getType()->allowMultiple())
+			if($this->modelHasSchedule())
+				throw new \Exception('Model ' . $this->getModel()->getName() . ' already have schedule ' . $this->getType()->getName());
 
+		$modelScheduleStartingValue = $this->getModelScheduleStartingValue();
 
-		// $deadlineValue = $this->calculateDeadlineValue();
-
-		// dd($deadlineValue);
-
-		$schedule = Schedule::getProjectClassName()::make();
-		$schedule->setType($this->getType());
-
-
-		$schedule->setStartingValue(
-			$startingValue
+		$this->schedule->setStartingValue(
+			$modelScheduleStartingValue
 		);
 
-		$schedule->save();
+		$this->getModel()->schedules()->save($this->schedule);
 
+		$typeNotificationHelper = new ScheduleTypeNotificationHelper(
+				$this->schedule
+			);
 
-		dd($startingValue);
+		$typeNotifications = $this->getType()->getTypeNotifications();
+
+		foreach($typeNotifications as $typeNotification)
+			$typeNotificationHelper->associateNotification($typeNotification);
 	}
 }

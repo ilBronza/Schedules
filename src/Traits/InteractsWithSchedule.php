@@ -4,6 +4,7 @@ namespace IlBronza\Schedules\Traits;
 
 use IlBronza\CRUD\Providers\RouterProvider\IbRouter;
 use IlBronza\Schedules\Models\Schedule;
+use IlBronza\Schedules\Models\ScheduledNotification;
 use IlBronza\Schedules\Models\Type;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -56,13 +57,36 @@ trait InteractsWithSchedule
 
     public function schedules()
     {
-        return $this->morphMany(Schedule::class, 'schedulable');
+        return $this->morphMany(Schedule::getProjectClassName(), 'schedulable');
     }
 
-    public function users()
+    // public function deployments(): HasManyThrough
+    // {
+    //     return $this->hasManyThrough(
+    //         Deployment::class,
+    //         Environment::class,
+    //         'project_id', // Foreign key on the environments table...
+    //         'environment_id', // Foreign key on the deployments table...
+    //         'id', // Local key on the projects table...
+    //         'id' // Local key on the environments table...
+    //     );
+    // }
+
+    public function scheduledNotifications()
     {
-        return $this->belongsToMany(User::class, 'subscribers', 'subscribale_id', 'user_id')
-            ->where('subscribale_type', static::class);
+        return $this->hasManyThrough(
+            ScheduledNotification::getProjectClassName(),
+            Schedule::getProjectClassName(),
+            'schedulable_id'
+        );
+    }
+
+    public function getCurrentSchedulesByType(Type $type) : Collection
+    {
+        return $this->schedules()
+                    ->byType($type)
+                    ->current()
+                    ->get();
     }
 
     public function scheduleTypes()
@@ -73,7 +97,12 @@ trait InteractsWithSchedule
 
     public function getApplicatedScheduleTypes() : Collection
     {
-        return $this->scheduleTypes()->get();
+        return $this->scheduleTypes()->distinct()->get();
+    }
+
+    public function getApplicatedScheduleTypesList() : Collection
+    {
+        return $this->getApplicatedScheduleTypes()->pluck('name', 'id');
     }
 
     public function getApplicateModelIndexUrl()

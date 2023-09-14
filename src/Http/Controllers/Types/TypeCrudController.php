@@ -8,7 +8,6 @@ use IlBronza\CRUD\Traits\CRUDEditUpdateTrait;
 use IlBronza\CRUD\Traits\CRUDIndexTrait;
 use IlBronza\CRUD\Traits\CRUDPlainIndexTrait;
 use IlBronza\CRUD\Traits\CRUDRelationshipTrait;
-use IlBronza\CRUD\Traits\CRUDShowTrait;
 use IlBronza\Schedules\Http\Controllers\CrudSchedulesCrudController;
 use Illuminate\Http\Request;
 
@@ -18,7 +17,6 @@ class TypeCrudController extends CrudSchedulesCrudController
 	use CRUDPlainIndexTrait;
     use CRUDCreateStoreTrait;
     use CRUDEditUpdateTrait;
-    use CRUDShowTrait;
     use CRUDDeleteTrait;
 
     use CRUDRelationshipTrait;
@@ -35,33 +33,10 @@ class TypeCrudController extends CrudSchedulesCrudController
         'destroy'
 	];
 
-    public function getCreateParametersFile() : ? string
-    {
-        return config($this->getBaseConfigName() . ".models.$this->configModelClassName.parametersFiles.create");
-    }
-
-    public function getGenericParametersFile() : ? string
-    {
-        return config($this->getBaseConfigName() . ".models.$this->configModelClassName.parametersFiles.edit");
-    }
-
-    public function getIndexFieldsArray()
-    {
-        return config($this->getBaseConfigName() . ".models.$this->configModelClassName.fieldsGroupsFiles.index")::getFieldsGroup();
-    }
-
-    public function getIndexElements()
-    {
-        return $this->getModelClass()::all();
-    }
-
-    public function getRelationshipsManagerClass()
-    {
-        return config($this->getBaseConfigName() . ".models.{$this->configModelClassName}.relationshipsManagerClasses.show");
-    }
-
     public function setShowButtons()
     {
+        $this->showButtons[] = $this->getModel()->getCreateNotificationTypeButton();        
+
         $this->showButtons[] = $this->getModel()->getApplicateButton();
     }
 

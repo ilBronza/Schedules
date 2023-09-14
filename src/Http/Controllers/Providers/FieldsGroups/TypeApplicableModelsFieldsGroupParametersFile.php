@@ -15,6 +15,7 @@ class TypeApplicableModelsFieldsGroupParametersFile extends FieldsGroupParameter
                 'schedulable_model_name' => 'flat',
                 'mySelfApplicate' => [
                     'type' => 'links.link',
+                    'faIcon' => 'clone',
                     'function' => 'getApplicateModelIndexUrl'
                 ],
                 'mySelfElements' => [

@@ -16,8 +16,6 @@ class CreateSchedulesSchedulesTable extends Migration
         Schema::create(config('schedules.models.schedule.table'), function (Blueprint $table) {
             $table->uuid('id')->primary();
 
-            $table->string('name');
-
             $table->unsignedBigInteger('user_id')->nullable();
             $table->foreign('user_id')->references('id')->on('users');
 
@@ -30,9 +28,6 @@ class CreateSchedulesSchedulesTable extends Migration
             $table->string('deadline_value');
 
             $table->string('field')->nullable();
-
-            $table->string('measurement_unit_id', 16);
-            $table->foreign('measurement_unit_id')->references('id')->on(config('measurementUnits.models.measurementUnit.table'));
 
             $table->datetime('expired_at')->nullable();
             $table->datetime('managed_at')->nullable();

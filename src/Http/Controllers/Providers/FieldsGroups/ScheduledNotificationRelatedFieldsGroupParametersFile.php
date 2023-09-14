@@ -4,7 +4,7 @@ namespace IlBronza\Schedules\Http\Controllers\Providers\FieldsGroups;
 
 use IlBronza\Datatables\Providers\FieldsGroupParametersFile;
 
-class TypeFieldsGroupParametersFile extends FieldsGroupParametersFile
+class ScheduledNotificationRelatedFieldsGroupParametersFile extends FieldsGroupParametersFile
 {
 	static function getFieldsGroup() : array
 	{
@@ -14,15 +14,15 @@ class TypeFieldsGroupParametersFile extends FieldsGroupParametersFile
                 'mySelfPrimary' => 'primary',
                 'mySelfEdit' => 'links.edit',
                 'mySelfSee' => 'links.see',
-                'mySelfApplicate' => [
-                    'type' => 'links.link',
-                    'function' => 'getApplicateIndexUrl',
-                    'faIcon' => 'clone'
-                ],
-
+                'created_at' => 'dates.date',
                 'name' => 'flat',
-                'description' => 'flat',
-                'typeNotifications' => 'relations.hasMany',
+
+                // 'schedulable' => 'relations.belongsTo',
+                // 'typeNotifications' => 'relations.belongsToMany',
+                // 'starting_value' => 'flat',
+                // 'current_value' => 'flat',
+                // 'percentage_validity' => 'utilities.milestone',
+                'deadline_value' => 'flat',
 
                 'mySelfDelete' => 'links.delete'
             ]
