@@ -80,7 +80,7 @@ class Type extends SchedulePackageBaseModel
     {
         return Button::create([
             'href' => $this->getCreateNotificationTypeUrl(),
-            'text' => trans('notificationType.create'),
+            'text' => 'schedules::notificationType.create',
             'icon' => 'location'
         ]);
     }
