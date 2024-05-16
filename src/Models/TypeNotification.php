@@ -25,7 +25,7 @@ class TypeNotification extends SchedulePackageBaseModel
         return $this->before;
     }
 
-    public function getName()
+    public function getName() : ? string
     {
         return $this->getBefore();
     }

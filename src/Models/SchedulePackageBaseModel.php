@@ -2,32 +2,34 @@
 
 namespace IlBronza\Schedules\Models;
 
-use IlBronza\CRUD\Models\BaseModel;
+use IlBronza\CRUD\Models\PackagedBaseModel;
 use IlBronza\CRUD\Traits\Model\CRUDUseUuidTrait;
 use Illuminate\Support\Str;
 
-class SchedulePackageBaseModel extends BaseModel
+class SchedulePackageBaseModel extends PackagedBaseModel
 {
     use CRUDUseUuidTrait;
 
     protected $keyType = 'string';
 
-    public function getRouteBaseNamePrefix() : ? string
+    static $packageConfigPrefix = 'schedules';
+
+    public function getRouteBaseNamePrefix() : string
     {
         return config('schedules.routePrefix');
     }
 
-    static function getModelConfigPrefix()
+    static function getModelConfigPrefix() : string
     {
         return static::$modelConfigPrefix ?? Str::camel(class_basename(static::class));
     }
 
-    static function getProjectClassName()
+    static function getProjectClassName() : string
     {
         return config('schedules.models.' . static::getModelConfigPrefix() . '.class');
     }
 
-    public function getTable()
+    public function getTable() : string
     {
         return config("schedules.models.{$this->getModelConfigPrefix()}.table");
     }

@@ -25,7 +25,7 @@ class Schedule extends SchedulePackageBaseModel
 		return $this->belongsTo(Type::getProjectClassName());
 	}
 
-	public function getName()
+	public function getName() : ? string
 	{
 		return $this->getType()->getName();
 	}
