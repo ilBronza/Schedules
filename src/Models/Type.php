@@ -58,7 +58,10 @@ class Type extends SchedulePackageBaseModel
 
     public function getMeasurementUnit() : MeasurementUnit
     {
-        return $this->measurementUnit;
+        if($this->relationLoaded('measurementUnit'))
+            return $this->measurementUnit;
+
+        return MeasurementUnit::getProjectClassName()::findCached($this->measurement_unit_id);
     }
 
     public function schedules()
@@ -95,7 +98,7 @@ class Type extends SchedulePackageBaseModel
         ]);
     }
 
-    public function getValidity() : string
+    public function getValidity() : ? string
     {
         return $this->validity;
     }
@@ -123,16 +126,6 @@ class Type extends SchedulePackageBaseModel
     public function getTargetScopeName() : string
     {
         return Str::studly($this->getName());
-    }
-
-    public function calculateDeadlineValue(mixed $startingValue)
-    {
-        $measurementUnit = $this->getMeasurementUnit();
-
-        return $measurementUnit->getDeadlineValue(
-            $startingValue,
-            $this->getValidity()
-        );
     }
 
     public function allowMultiple() : bool

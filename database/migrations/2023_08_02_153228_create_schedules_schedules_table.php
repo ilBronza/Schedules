@@ -24,8 +24,8 @@ class CreateSchedulesSchedulesTable extends Migration
 
             $table->nullableUuidMorphs('schedulable');
 
-            $table->string('starting_value');
-            $table->string('deadline_value');
+            $table->string('starting_value', 32)->nullable();
+            $table->string('deadline_value', 32);
 
             $table->string('field')->nullable();
 

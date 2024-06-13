@@ -1,6 +1,6 @@
 <?php
 
-namespace IlBronza\Schedules\Helpers;
+namespace IlBronza\Schedules\Helpers\Applicators;
 
 use IlBronza\Schedules\Helpers\ScheduleApplicatorHelper;
 use IlBronza\Schedules\Models\Type;
@@ -34,7 +34,7 @@ class BulkScheduleApplicatorHelper
 		$helper->addScheduleType($type);
 		$helper->addModels($models);
 
-		return $helper->applicate();
+		return $helper->applicateBulk();
 	}
 
 	public function addScheduleType(Type $type)
@@ -65,7 +65,7 @@ class BulkScheduleApplicatorHelper
 		return $this->models;
 	}
 
-	public function applicate()
+	public function applicateBulk()
 	{
 		foreach($this->getScheduleTypes() as $type)
 			foreach($this->getModels() as $model)

@@ -89,6 +89,14 @@ trait InteractsWithSchedule
                     ->get();
     }
 
+    public function getLatestByType(Type $type) : ? Schedule
+    {
+        return $this->schedules()
+                    ->byType($type)
+                    ->orderByDesc('deadline_value')
+                    ->first();
+    }
+
     public function scheduleTypes()
     {
         return $this->belongsToMany(Type::class, config('schedules.models.schedule.table'), 'schedulable_id', 'type_id')

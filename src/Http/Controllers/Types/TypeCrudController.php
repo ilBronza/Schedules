@@ -4,7 +4,6 @@ namespace IlBronza\Schedules\Http\Controllers\Types;
 
 use IlBronza\CRUD\Traits\CRUDCreateStoreTrait;
 use IlBronza\CRUD\Traits\CRUDDeleteTrait;
-use IlBronza\CRUD\Traits\CRUDEditUpdateTrait;
 use IlBronza\CRUD\Traits\CRUDIndexTrait;
 use IlBronza\CRUD\Traits\CRUDPlainIndexTrait;
 use IlBronza\CRUD\Traits\CRUDRelationshipTrait;
@@ -16,7 +15,6 @@ class TypeCrudController extends CrudSchedulesCrudController
 	use CRUDIndexTrait;
 	use CRUDPlainIndexTrait;
     use CRUDCreateStoreTrait;
-    use CRUDEditUpdateTrait;
     use CRUDDeleteTrait;
 
     use CRUDRelationshipTrait;
@@ -27,15 +25,13 @@ class TypeCrudController extends CrudSchedulesCrudController
 		'index',
         'create',
         'store',
-        'edit',
-        'update',
         'show',
         'destroy'
 	];
 
     public function setShowButtons()
     {
-        $this->showButtons[] = $this->getModel()->getCreateNotificationTypeButton();        
+        $this->showButtons[] = $this->getModel()->getCreateNotificationTypeButton();
 
         $this->showButtons[] = $this->getModel()->getApplicateButton();
     }
@@ -45,20 +41,6 @@ class TypeCrudController extends CrudSchedulesCrudController
         $type = $this->findModel($type);
 
         return $this->_show($type);
-    }
-
-    public function edit(string $type)
-    {
-        $type = $this->findModel($type);
-
-        return $this->_edit($type);
-    }
-
-    public function update(Request $request, string $type)
-    {
-        $type = $this->findModel($type);
-
-        return $this->_update($request, $type);
     }
 
     public function destroy($vehicle)

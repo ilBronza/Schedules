@@ -24,6 +24,7 @@ class TypeCreateStoreFieldsetsParameters extends FieldsetParametersFile
                 'fields' => [
                     'name' => ['text' => 'string|required|max:255'],
                     'validity' => ['number' => 'numeric|nullable'],
+                    'allow_multiple' => ['boolean' => 'bool|required'],
                     'measurement_unit_id' => [
                         'type' => 'select',
                         'multiple' => false,
@@ -42,7 +43,7 @@ class TypeCreateStoreFieldsetsParameters extends FieldsetParametersFile
                                 'type' => 'select',
                                 'multiple' => false,
                                 'select2' => false,
-                                'rules' => 'string|nullable|in:' . implode(',', $this->getModelsArray()),
+                                'rules' => 'string|nullable|in:' . implode(',', array_keys($this->getModelsArray())),
                                 'possibleValuesArray' => $this->getModelsArray(),
                                 'roles' => ['superadmin', 'administrator']
                             ],
@@ -61,7 +62,7 @@ class TypeCreateStoreFieldsetsParameters extends FieldsetParametersFile
                                 'type' => 'select',
                                 'multiple' => false,
                                 'select2' => false,
-                                'rules' => 'string|nullable|in:' . implode(',', $this->getRolesArray()),
+                                'rules' => 'string|nullable|in:' . implode(',', array_keys($this->getRolesArray())),
                                 'possibleValuesArray' => $this->getRolesArray(),
                                 'roles' => ['superadmin', 'administrator']
                             ],

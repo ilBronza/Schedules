@@ -2,9 +2,15 @@
 
 namespace IlBronza\Schedules\Models;
 
+
+use IlBronza\MeasurementUnits\BaseMeasurementUnitHelpers\BaseMeasurementUnitHelper;
+use IlBronza\MeasurementUnits\Models\MeasurementUnit;
+use IlBronza\Schedules\Helpers\Applicators\ScheduleDeadlineCalculatorHelper;
+use IlBronza\Schedules\Helpers\Applicators\ScheduleStartingCalculatorHelper;
 use IlBronza\Schedules\Helpers\ScheduleApplicatorHelper;
 use IlBronza\Schedules\Models\ScheduledNotification;
 use IlBronza\Schedules\Models\Type;
+use IlBronza\Ukn\Facades\Ukn;
 use Illuminate\Database\Eloquent\Model;
 // use IlBronza\Schedules\Models\TypeNotification;
 
@@ -23,6 +29,11 @@ class Schedule extends SchedulePackageBaseModel
 	public function type()
 	{
 		return $this->belongsTo(Type::getProjectClassName());
+	}
+
+	public function getMeasurementUnit() : MeasurementUnit
+	{
+		return $this->getType()->getMeasurementUnit();
 	}
 
 	public function getName() : ? string
@@ -48,7 +59,10 @@ class Schedule extends SchedulePackageBaseModel
 
 	public function getType() : Type
 	{
-		return $this->type;
+		if($this->relationLoaded('type'))
+			return $this->type;
+
+		return Type::getProjectClassName()::findCached($this->type_id);
 	}
 
 	public function setType(Type $type)
@@ -84,7 +98,7 @@ class Schedule extends SchedulePackageBaseModel
 		return $delta / ($span / 100);
 	}
 
-    public function setStartingValue(mixed $value, bool $save = false)
+    public function setStarting(mixed $value, bool $save = false)
     {
     	$this->starting_value = $value;
 
@@ -92,43 +106,65 @@ class Schedule extends SchedulePackageBaseModel
     		$this->save();
     }
 
-	public function setDeadlineValue(mixed $value = null, bool $save = false)
+	public function setDeadline(mixed $value = null, bool $save = false)
 	{
+		if(($this->deadline_value)&&($this->deadline_value != $value))
+			if(config('schedules.notifyWhenDeadlineChanges', true))
+				Ukn::w(__('schedules::messages.deadlineChangedToForElement', ['deadline' => $value, 'element' => $this->getModel()->getName()]));
+
 		$this->deadline_value = $value;
 
 		if($save)
 			$this->save();
 	}
 
+	public function getMeasurementUnitHelper() : BaseMeasurementUnitHelper
+	{
+		return $this->getType()->getMeasurementUnit()->getHelper();
+	}
+
+	public function parseOutputValueByType(mixed $value) : mixed
+	{
+		$helper = $this->getMeasurementUnitHelper();
+
+		return $helper->parseMeasurementUnitOutputValue($value);
+	}
+
     public function getStartingValue() : mixed
     {
-    	return $this->starting_value;
+    	return $this->parseOutputValueByType(
+    		$this->starting_value
+    	);
     }
 
     public function getDeadlineValue() : mixed
     {
-    	return $this->deadline_value;
+    	return $this->parseOutputValueByType(
+    		$this->deadline_value
+    	);
     }
 
-    public function calculateEndingValue() : mixed
+    public function calculateDeadline() : mixed
     {
-    	$startingValue = $this->getStartingValue();
+    	$result = ScheduleDeadlineCalculatorHelper::calculateFromSchedule(
+			$this
+		);
 
-    	return $this->getType()->calculateDeadlineValue($startingValue);
+		$this->setDeadline($result, true);
+
+		return $result;
     }
 
-	public static function boot()
-	{
-		parent::boot();
+    public function calculateStarting() : mixed
+    {
+		$result = ScheduleStartingCalculatorHelper::calculateFromSchedule(
+			$this
+		);
 
-		static::saving(function($schedule)
-		{
-			if($schedule->isDirty(['starting_value']))
-				$schedule->setDeadlineValue(
-					$schedule->calculateEndingValue()
-				);
-		});
-	}
+		$this->setStarting($result, true);
+
+		return $result;
+    }
 
 	public function scopeNotExpired($query)
 	{
