@@ -21,6 +21,7 @@ class TypeCreateStoreFieldsetsParameters extends FieldsetParametersFile
     {
         return [
             'base' => [
+                'translationPrefix' => 'schedules::fields',
                 'fields' => [
                     'name' => ['text' => 'string|required|max:255'],
                     'validity' => ['number' => 'numeric|nullable'],
@@ -35,6 +36,7 @@ class TypeCreateStoreFieldsetsParameters extends FieldsetParametersFile
                 'width' => ["1-3@l", '1-2@m']
             ],
             'applications' => [
+                'translationPrefix' => 'schedules::fields',
                 'fields' => [
                     'models' => [
                         'type' => 'json',
@@ -54,6 +56,7 @@ class TypeCreateStoreFieldsetsParameters extends FieldsetParametersFile
                 'width' => ["1-3@l", '1-2@m']
             ],
             'roles' => [
+                'translationPrefix' => 'schedules::fields',
                 'fields' => [
                     'roles' => [
                         'type' => 'json',

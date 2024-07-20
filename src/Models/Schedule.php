@@ -5,9 +5,9 @@ namespace IlBronza\Schedules\Models;
 
 use IlBronza\MeasurementUnits\BaseMeasurementUnitHelpers\BaseMeasurementUnitHelper;
 use IlBronza\MeasurementUnits\Models\MeasurementUnit;
+use IlBronza\Schedules\Helpers\Applicators\ScheduleApplicatorHelper;
 use IlBronza\Schedules\Helpers\Applicators\ScheduleDeadlineCalculatorHelper;
 use IlBronza\Schedules\Helpers\Applicators\ScheduleStartingCalculatorHelper;
-use IlBronza\Schedules\Helpers\ScheduleApplicatorHelper;
 use IlBronza\Schedules\Models\ScheduledNotification;
 use IlBronza\Schedules\Models\Type;
 use IlBronza\Ukn\Facades\Ukn;
@@ -92,6 +92,15 @@ class Schedule extends SchedulePackageBaseModel
 
 	public function getPercentageValidityAttribute() : float
 	{
+		if(! $this->deadline_value)
+			return null;
+
+		if($this->deadline_value < $this->getCurrentValue())
+			return 100;
+
+		if(! $this->starting_value)
+			$this->starting_value = $this->calculateStarting();
+
 		$span = $this->deadline_value - $this->starting_value;
 		$delta = $this->getCurrentValue() - $this->starting_value;
 

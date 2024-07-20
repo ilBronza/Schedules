@@ -53,7 +53,7 @@ class ScheduleApplicatorHelper
 
 	static function getCurrentValueFromSchedule(Schedule $schedule)
 	{
-		dd('cossa serve questo');
+		// dd('cossa serve questo');
 
 		$helper = new static($schedule->getType(), $schedule->getSchedulable());
 
@@ -75,8 +75,6 @@ class ScheduleApplicatorHelper
 	public function getModelScheduleCurrentValue() : mixed
 	{
 		$valueGetterMethod = $this->getModelSchedulesCurrentValueGetterMethod();
-
-		dd($valueGetterMethod);
 
 		return $this->getModel()->{$valueGetterMethod}();
 	}

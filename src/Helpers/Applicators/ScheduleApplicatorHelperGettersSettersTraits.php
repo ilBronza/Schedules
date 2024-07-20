@@ -5,6 +5,7 @@ namespace IlBronza\Schedules\Helpers\Applicators;
 use IlBronza\Schedules\Models\Schedule;
 use IlBronza\Schedules\Models\Type;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 trait ScheduleApplicatorHelperGettersSettersTraits
 {
@@ -67,7 +68,7 @@ trait ScheduleApplicatorHelperGettersSettersTraits
 			if($modelParameters['model'] == $this->getScheduledModelClassname())
 			{
 				if($source = ($modelParameters['source'] ?? false))
-					return "get" . Str::studly($source) . 'Attribute';
+					return "get" . Str::studly($source);
 
 				if($modelParameters['method'] ?? false)
 					return $modelParameters['method'];

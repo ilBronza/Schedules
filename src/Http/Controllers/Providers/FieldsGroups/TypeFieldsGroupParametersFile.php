@@ -9,6 +9,7 @@ class TypeFieldsGroupParametersFile extends FieldsGroupParametersFile
 	static function getFieldsGroup() : array
 	{
 		return [
+            'translationPrefix' => 'schedules::fields',
             'fields' => 
             [
                 'mySelfPrimary' => 'primary',
@@ -21,6 +22,17 @@ class TypeFieldsGroupParametersFile extends FieldsGroupParametersFile
                 ],
 
                 'name' => 'flat',
+                'validity' => 'flat',
+                'measurement_unit_id' => 'flat',
+                'allow_multiple' => 'boolean',
+
+                'roles' => 'json',
+                'models' => 'json',
+
+
+
+
+
                 'description' => 'flat',
                 'typeNotifications' => 'relations.hasMany',
 

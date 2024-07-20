@@ -9,6 +9,7 @@ class ScheduleRelatedFieldsGroupParametersFile extends FieldsGroupParametersFile
 	static function getFieldsGroup() : array
 	{
 		return [
+            'translationPrefix' => 'schedules::fields',
             'fields' => 
             [
                 'mySelfPrimary' => 'primary',
@@ -19,9 +20,9 @@ class ScheduleRelatedFieldsGroupParametersFile extends FieldsGroupParametersFile
                 'schedulable' => 'relations.belongsTo',
                 'typeNotifications' => 'relations.belongsToMany',
                 'starting_value' => 'flat',
-                'current_value' => 'flat',
-                'percentage_validity' => 'utilities.milestone',
                 'deadline_value' => 'flat',
+                'percentage_validity' => 'utilities.milestone',
+                'current_value' => 'flat',
 
                 'mySelfDelete' => 'links.delete'
             ]
