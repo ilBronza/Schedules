@@ -8,6 +8,7 @@ use IlBronza\MeasurementUnits\Models\MeasurementUnit;
 use IlBronza\Schedules\Helpers\Applicators\ScheduleApplicatorHelper;
 use IlBronza\Schedules\Helpers\Applicators\ScheduleDeadlineCalculatorHelper;
 use IlBronza\Schedules\Helpers\Applicators\ScheduleStartingCalculatorHelper;
+use IlBronza\Schedules\Helpers\Calculators\ScheduleCurrentValueCalculatorHelper;
 use IlBronza\Schedules\Models\ScheduledNotification;
 use IlBronza\Schedules\Models\Type;
 use IlBronza\Ukn\Facades\Ukn;
@@ -39,6 +40,19 @@ class Schedule extends SchedulePackageBaseModel
 	public function getName() : ? string
 	{
 		return $this->getType()->getName();
+	}
+
+	public function isExpired() : bool
+	{
+		if(! $deadlineValue = $this->getDeadlineValue())
+			return null;
+
+		return $deadlineValue < $this->getCurrentValue();
+	}
+
+	public function isExpiring() : bool
+	{
+		return $this->getPercentageValidityAttribute() > 85;
 	}
 
 	// public function typeNotifications()
@@ -81,7 +95,9 @@ class Schedule extends SchedulePackageBaseModel
 			60,
 			function ()
 			{
-				return ScheduleApplicatorHelper::getCurrentValueFromSchedule($this);
+				return $this->getMeasurementUnit()->getHelper()->parseMeasurementUnitOutputValue(
+					ScheduleCurrentValueCalculatorHelper::getCurrentValueFromSchedule($this)
+				);
 			});
 	}
 
@@ -92,19 +108,33 @@ class Schedule extends SchedulePackageBaseModel
 
 	public function getPercentageValidityAttribute() : float
 	{
-		if(! $this->deadline_value)
+		if(! $deadlineValue = $this->getDeadlineValue())
 			return null;
 
-		if($this->deadline_value < $this->getCurrentValue())
+		if($deadlineValue < $this->getCurrentValue())
 			return 100;
 
-		if(! $this->starting_value)
-			$this->starting_value = $this->calculateStarting();
+		if(! $startingValue = $this->getStartingValue())
+			$startingValue = $this->calculateStarting();
 
-		$span = $this->deadline_value - $this->starting_value;
-		$delta = $this->getCurrentValue() - $this->starting_value;
+		$span = $this->getMeasurementUnitHelper()->calculateDifference($startingValue, $deadlineValue);
+
+		$delta = $this->getMeasurementUnitHelper()->calculateDifference($startingValue, $this->getCurrentValue());
 
 		return $delta / ($span / 100);
+	}
+
+	public function  getPercentageValidity(bool $forceCalculation = false)
+	{
+		if($forceCalculation)
+			return $this->percentage_validity;
+
+		return $this->percentage_validity;
+
+		return cache()->remember(
+			$this->cacheKey('percentage_validity'),
+			3600,
+			function () { return $this->percentage_validity; });
 	}
 
     public function setStarting(mixed $value, bool $save = false)
@@ -141,9 +171,19 @@ class Schedule extends SchedulePackageBaseModel
 
     public function getStartingValue() : mixed
     {
-    	return $this->parseOutputValueByType(
-    		$this->starting_value
-    	);
+		try
+		{
+			return $this->parseOutputValueByType(
+				$this->starting_value
+			);
+		}
+		catch(\Exception $e)
+		{
+			if($e->getCode() == 9901)
+				return null;
+
+			throw $e;
+		}
     }
 
     public function getDeadlineValue() : mixed

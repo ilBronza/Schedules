@@ -10,6 +10,8 @@ use IlBronza\Schedules\Models\Type;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
+use function dd;
+
 class ScheduleApplicatorHelper
 {
 	/**
@@ -43,22 +45,36 @@ class ScheduleApplicatorHelper
 	 **/
 	public function __construct(Type $type, Model $model)
 	{
-		$this->type = $type;
-		$this->model = $model;
+		$this->setType($type);
+		$this->setModel($model);
+	}
 
+	public function applicateSchedule() : static
+	{
 		$this->checkRightsToAddSchedule();
 
 		$this->initializeSchedule();
+
+		return $this;
 	}
 
-	static function getCurrentValueFromSchedule(Schedule $schedule)
-	{
-		// dd('cossa serve questo');
-
-		$helper = new static($schedule->getType(), $schedule->getSchedulable());
-
-		return $helper->getModelScheduleCurrentValue();
-	}
+//	/**
+//	 * this function get the current schedule value
+//	 * to be used to calculate the remaining time
+//	 * or the completion percentage
+//	 *
+//	 * @param  Schedule  $schedule
+//	 *
+//	 * @return mixed
+//	 */
+//	static function getCurrentValueFromSchedule(Schedule $schedule)
+//	{
+//		// dd('cossa serve questo');
+//
+//		$helper = new static($schedule->getType(), $schedule->getSchedulable());
+//
+//		return $helper->getModelScheduleCurrentValue();
+//	}
 
 	public function getModelSchedulesStartingValueGetterMethod() : string
 	{
@@ -72,12 +88,12 @@ class ScheduleApplicatorHelper
 		return $this->getModel()->{$valueGetterMethod}();
 	}
 
-	public function getModelScheduleCurrentValue() : mixed
-	{
-		$valueGetterMethod = $this->getModelSchedulesCurrentValueGetterMethod();
-
-		return $this->getModel()->{$valueGetterMethod}();
-	}
+//	public function getModelScheduleCurrentValue() : mixed
+//	{
+//		$valueGetterMethod = $this->getModelSchedulesCurrentValueGetterMethod();
+//
+//		return $this->getModel()->{$valueGetterMethod}();
+//	}
 
 	public function associateScheduleAndNotifications() : Schedule
 	{
@@ -129,6 +145,7 @@ class ScheduleApplicatorHelper
 	public static function applicateScheduleToModel(Type $type, Model $model)
 	{
 		$helper = new static($type, $model);
+		$helper->applicateSchedule();
 
 		$modelScheduleStartingValue = $helper->getModelScheduleStartingValue();
 
@@ -141,12 +158,30 @@ class ScheduleApplicatorHelper
 		return $helper->associateScheduleAndNotifications();
 	}
 
-	public static function applicateStartingScheduleToModel(Type $type, Model $model, Carbon $startingTime)
+	static function findOrApplicateStartingScheduleToModel(Type $type, Model $model, Carbon $startingTime)
 	{
 		$helper = new static($type, $model);
 
+		if(! $helper->getSchedule())
+			$helper->applicateSchedule();
+			dd('creare schedule con applicator applicateEndingScheduleToModel');
+
 		$helper->schedule->setStarting(
-			$startingTime
+			$startingTime,
+			true
+		);
+
+		return $helper->associateScheduleAndNotifications();
+	}
+
+	public static function applicateStartingScheduleToModel(Type $type, Model $model, Carbon $startingTime)
+	{
+		$helper = new static($type, $model);
+		$helper->applicateSchedule();
+
+		$helper->schedule->setStarting(
+			$startingTime,
+			true
 		);
 
 		$helper->schedule->calculateDeadline();
@@ -154,11 +189,28 @@ class ScheduleApplicatorHelper
 		return $helper->associateScheduleAndNotifications();
 	}
 
-	public static function applicateEndingScheduleToModel(Type $type, Model $model, Carbon $deadline)
+	static function findOrApplicateEndingScheduleToModel(Type $type, Model $model, Carbon $deadline)
 	{
 		$helper = new static($type, $model);
 
-		$helper->schedule->setDeadline(
+		if(! $helper->getSchedule())
+			$helper->applicateSchedule();
+			// dd('creare schedule con applicator applicateEndingScheduleToModel');
+
+		$helper->getSchedule()->setDeadline(
+			$deadline,
+			$save = true
+		);
+
+		return $helper->associateScheduleAndNotifications();
+	}
+
+	public static function applicateEndingScheduleToModel(Type $type, Model $model, Carbon $deadline)
+	{
+		$helper = new static($type, $model);
+		$helper->applicateSchedule();
+
+		$helper->getSchedule()->setDeadline(
 			$deadline,
 			$save = true
 		);

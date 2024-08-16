@@ -7,6 +7,7 @@ use IlBronza\Schedules\Models\Schedule;
 use IlBronza\Schedules\Models\ScheduledNotification;
 use IlBronza\Schedules\Models\Type;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Collection;
 
 trait InteractsWithSchedule
@@ -20,7 +21,10 @@ trait InteractsWithSchedule
      * 
      * es. Vehicle::getSchedulableModelNameAttribute() : string 'Veicolo'
      **/
-    abstract function getSchedulableModelNameAttribute() : string;
+    function getSchedulableModelNameAttribute() : string
+	{
+		return $this->getMorphClass();
+	}
 
     // /**
     //  * returns an array to populate 
@@ -60,6 +64,11 @@ trait InteractsWithSchedule
         return $this->morphMany(Schedule::getProjectClassName(), 'schedulable');
     }
 
+	public function getSchedules() : Collection
+	{
+		return $this->schedules;
+	}
+
     // public function deployments(): HasManyThrough
     // {
     //     return $this->hasManyThrough(
@@ -81,13 +90,25 @@ trait InteractsWithSchedule
         );
     }
 
+	public function getCurrentSchedulesByTypeQuery(Type $type) : MorphMany
+	{
+		return $this->schedules()
+					->byType($type)
+					->current()
+					->orderBy('deadline_value', 'DESC');
+	}
+
     public function getCurrentSchedulesByType(Type $type) : Collection
     {
-        return $this->schedules()
-                    ->byType($type)
-                    ->current()
+        return $this->getCurrentSchedulesByTypeQuery($type)
                     ->get();
     }
+
+	public function getCurrentScheduleByType(Type $type) : ? Schedule
+	{
+		return $this->getCurrentSchedulesByTypeQuery($type)
+					->first();
+	}
 
     public function getLatestByType(Type $type) : ? Schedule
     {
