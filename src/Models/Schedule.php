@@ -13,6 +13,11 @@ use IlBronza\Schedules\Models\ScheduledNotification;
 use IlBronza\Schedules\Models\Type;
 use IlBronza\Ukn\Facades\Ukn;
 use Illuminate\Database\Eloquent\Model;
+
+use Illuminate\Support\Collection;
+
+use function is_array;
+
 // use IlBronza\Schedules\Models\TypeNotification;
 
 class Schedule extends SchedulePackageBaseModel
@@ -228,6 +233,14 @@ class Schedule extends SchedulePackageBaseModel
 	public function scopeCurrent($query)
 	{
 		$query->notExpired()->notManaged();
+	}
+
+	public function scopeByTypes($query, array|Collection $types)
+	{
+		if(! is_array($types))
+			$types = $types->pluck('id');
+
+		$query->whereIn('type_id', $types);
 	}
 
 	public function scopeByType($query, Type $type)

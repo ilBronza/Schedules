@@ -27,16 +27,25 @@ class Schedules implements RoutedObjectInterface
 
         $settingsButton->addChild($schedulesManagerButton);
 
-        $schedulesManagerButton->addChild(
-            $menu->createButton([
-                'name' => 'types.list',
-                'icon' => 'gear',
-                'text' => 'schedules::types.list',
-                'href' => IbRouter::route($this, 'types.index')
-            ])
-        );
+		$schedulesManagerButton->addChild(
+			$menu->createButton([
+				'name' => 'types.list',
+				'icon' => 'gear',
+				'text' => 'schedules::types.list',
+				'href' => IbRouter::route($this, 'types.index')
+			])
+		);
 
-        // $schedulesManagerButton->addChild(
+		$schedulesManagerButton->addChild(
+			$menu->createButton([
+				'name' => 'schedules.list',
+				'icon' => 'gear',
+				'text' => 'schedules::schedules.list',
+				'href' => IbRouter::route($this, 'schedules.index')
+			])
+		);
+
+		// $schedulesManagerButton->addChild(
         //     $menu->createButton([
         //         'name' => 'schedules.types.list',
         //         'icon' => 'gear',

@@ -88,13 +88,6 @@ class ScheduleApplicatorHelper
 		return $this->getModel()->{$valueGetterMethod}();
 	}
 
-//	public function getModelScheduleCurrentValue() : mixed
-//	{
-//		$valueGetterMethod = $this->getModelSchedulesCurrentValueGetterMethod();
-//
-//		return $this->getModel()->{$valueGetterMethod}();
-//	}
-
 	public function associateScheduleAndNotifications() : Schedule
 	{
 		$this->getModel()->schedules()->save($this->schedule);
@@ -164,7 +157,7 @@ class ScheduleApplicatorHelper
 
 		if(! $helper->getSchedule())
 			$helper->applicateSchedule();
-			dd('creare schedule con applicator applicateEndingScheduleToModel');
+			throw new \Exception('creare schedule con applicator applicateEndingScheduleToModel');
 
 		$helper->schedule->setStarting(
 			$startingTime,

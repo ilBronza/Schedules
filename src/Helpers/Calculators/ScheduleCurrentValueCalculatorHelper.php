@@ -8,6 +8,7 @@ use IlBronza\Schedules\Models\Schedule;
 use IlBronza\Schedules\Models\Type;
 
 use function get_class;
+use function method_exists;
 
 class ScheduleCurrentValueCalculatorHelper
 {
@@ -39,6 +40,9 @@ class ScheduleCurrentValueCalculatorHelper
 	public function getModelScheduleCurrentValue() : mixed
 	{
 		$valueGetterMethod = $this->getModelSchedulesCurrentValueGetterMethod();
+
+		if(! method_exists($this->getModel(), $valueGetterMethod))
+			throw new \Exception('Method ' . $valueGetterMethod . ' not found in ' . get_class($this->getModel()));
 
 		return $this->getModel()->{$valueGetterMethod}();
 	}

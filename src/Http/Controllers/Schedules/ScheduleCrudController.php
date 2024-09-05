@@ -38,7 +38,18 @@ class ScheduleCrudController extends CrudSchedulesCrudController
         'destroy'
 	];
 
-    public function show(string $schedule)
+	public function getIndexElements()
+	{
+		$query = $this->getModelClass()::with([
+			'type',
+			'schedulable',
+			'typeNotifications'
+		]);
+
+		return $query->get();
+	}
+
+	public function show(string $schedule)
     {
         $schedule = $this->findModel($schedule);
 

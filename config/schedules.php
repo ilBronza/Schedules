@@ -3,6 +3,7 @@
 use App\Models\ProjectSpecific\User;
 use IlBronza\Schedules\Http\Controllers\MeasurementUnits\MeasurementUnitCrudController;
 use IlBronza\Schedules\Http\Controllers\Providers\FieldsGroups\MeasurementUnitFieldsGroupParametersFile;
+use IlBronza\Schedules\Http\Controllers\Providers\FieldsGroups\ScheduleIndexFieldsGroupParametersFile;
 use IlBronza\Schedules\Http\Controllers\Providers\FieldsGroups\ScheduleRelatedFieldsGroupParametersFile;
 use IlBronza\Schedules\Http\Controllers\Providers\FieldsGroups\ScheduledNotificationRelatedFieldsGroupParametersFile;
 use IlBronza\Schedules\Http\Controllers\Providers\FieldsGroups\TypeApplicableModelsElementsFieldsGroupParametersFile;
@@ -90,6 +91,7 @@ return [
             'class' => Schedule::class,
             'table' => 'schedules__schedules',
             'fieldsGroupsFiles' => [
+				'index' => ScheduleIndexFieldsGroupParametersFile::class,
                 'related' => ScheduleRelatedFieldsGroupParametersFile::class
             ],
             // 'relationshipsManagerClasses' => [
