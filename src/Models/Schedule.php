@@ -57,7 +57,7 @@ class Schedule extends SchedulePackageBaseModel
 
 	public function isExpiring() : bool
 	{
-		return $this->getPercentageValidityAttribute() > 85;
+		return $this->getPercentageValidityAttribute() > 95;
 	}
 
 	// public function typeNotifications()
