@@ -55,9 +55,14 @@ class Schedule extends SchedulePackageBaseModel
 		return $deadlineValue < $this->getCurrentValue();
 	}
 
+	public function getPercentageValidityLimit() : int
+	{
+		return $this->percentage_validity ?? 95;
+	}
+
 	public function isExpiring() : bool
 	{
-		return $this->getPercentageValidityAttribute() > 95;
+		return $this->getPercentageValidityAttribute() > $this->getPercentageValidityLimit();
 	}
 
 	// public function typeNotifications()

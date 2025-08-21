@@ -25,6 +25,7 @@ class TypeCreateStoreFieldsetsParameters extends FieldsetParametersFile
                 'fields' => [
                     'name' => ['text' => 'string|required|max:255'],
                     'validity' => ['number' => 'numeric|nullable'],
+                    'percentage_validity' => ['number' => 'numeric|nullable|min:0|max:100'],
                     'allow_multiple' => ['boolean' => 'bool|required'],
                     'measurement_unit_id' => [
                         'type' => 'select',
