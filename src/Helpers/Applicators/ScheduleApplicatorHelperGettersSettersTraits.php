@@ -79,6 +79,9 @@ trait ScheduleApplicatorHelperGettersSettersTraits
 
 	public function getScheduledModelClassname() : string
 	{
+		if($class = $this->getModel()->getMorphClass())
+			return $class;
+
 		return get_class(
 			$this->getModel()
 		);
@@ -109,7 +112,7 @@ trait ScheduleApplicatorHelperGettersSettersTraits
 		$modelsList = $this->getType()->getModelsValue();
 
 		foreach($modelsList as $modelParameters)
-			if($modelParameters['model'] == $this->getScheduledModelClassname())
+			if(class_basename($modelParameters['model']) == $this->getScheduledModelClassname())
 			{
 				if($source = ($modelParameters['source'] ?? false))
 					return "get" . Str::studly($source);

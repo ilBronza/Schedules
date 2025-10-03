@@ -57,7 +57,7 @@ class Schedule extends SchedulePackageBaseModel
 
 	public function getPercentageValidityLimit() : int
 	{
-		return $this->percentage_validity ?? 95;
+		return $this->percentage_validity_limit ?? 99;
 	}
 
 	public function isExpiring() : bool
