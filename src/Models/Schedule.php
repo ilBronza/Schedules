@@ -11,7 +11,7 @@ use IlBronza\Schedules\Helpers\Applicators\ScheduleStartingCalculatorHelper;
 use IlBronza\Schedules\Helpers\Calculators\ScheduleCurrentValueCalculatorHelper;
 use IlBronza\Schedules\Models\ScheduledNotification;
 use IlBronza\Schedules\Models\Type;
-use IlBronza\Ukn\Facades\Ukn;
+use IlBronza\Ukn\Ukn;
 use Illuminate\Database\Eloquent\Model;
 
 use Illuminate\Support\Collection;

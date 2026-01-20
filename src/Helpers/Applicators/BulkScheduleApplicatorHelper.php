@@ -4,7 +4,7 @@ namespace IlBronza\Schedules\Helpers\Applicators;
 
 use IlBronza\Schedules\Helpers\ScheduleApplicatorHelper;
 use IlBronza\Schedules\Models\Type;
-use IlBronza\Ukn\Facades\Ukn;
+use IlBronza\Ukn\Ukn;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
