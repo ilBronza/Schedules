@@ -20,7 +20,7 @@ class TypeApplicateController extends CrudSchedulesCrudController
 
     public function getIndexFieldsArray()
     {
-        return config('schedules.models.type.fieldsGroupsFiles.applicableModels')::getFieldsGroup();
+        return config('schedules.models.type.fieldsGroupsFiles.applicableModels')::getTracedFieldsGroup();
     }
 
     public function index(Request $request, Type $type)

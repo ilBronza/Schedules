@@ -36,12 +36,12 @@ class CrudSchedulesCrudController extends CRUD
 
     public function getIndexFieldsArray()
     {
-        return config($this->getBaseConfigName() . ".models.$this->configModelClassName.fieldsGroupsFiles.index")::getFieldsGroup();
+        return config($this->getBaseConfigName() . ".models.$this->configModelClassName.fieldsGroupsFiles.index")::getTracedFieldsGroup();
     }
 
     public function getRelatedFieldsArray()
     {
-        return config($this->getBaseConfigName() . ".models.$this->configModelClassName.fieldsGroupsFiles.related")::getFieldsGroup();
+        return config($this->getBaseConfigName() . ".models.$this->configModelClassName.fieldsGroupsFiles.related")::getTracedFieldsGroup();
     }
 
     public function getIndexElements()
