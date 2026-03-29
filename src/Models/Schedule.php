@@ -13,9 +13,8 @@ use IlBronza\Schedules\Models\ScheduledNotification;
 use IlBronza\Schedules\Models\Type;
 use IlBronza\Ukn\Ukn;
 use Illuminate\Database\Eloquent\Model;
-
 use Illuminate\Support\Collection;
-
+use Illuminate\Support\Facades\Log;
 use function is_array;
 
 // use IlBronza\Schedules\Models\TypeNotification;
@@ -118,8 +117,16 @@ class Schedule extends SchedulePackageBaseModel
 
 	public function getPercentageValidityAttribute() : float
 	{
-		if(! $deadlineValue = $this->getDeadlineValue())
-			return null;
+		try
+		{
+			if(! $deadlineValue = $this->getDeadlineValue())
+				return null;			
+		}
+		catch(\Throwable $e)
+		{
+			Log::critical($e->getMessage() . ' Siamo qua');
+				return 0;
+		}
 
 		if($deadlineValue < $this->getCurrentValue())
 			return 100;

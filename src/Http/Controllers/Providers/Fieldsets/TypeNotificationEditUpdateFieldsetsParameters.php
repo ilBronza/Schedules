@@ -16,14 +16,14 @@ class TypeNotificationEditUpdateFieldsetsParameters extends FieldsetParametersFi
                         'type' => 'select',
                         'multiple' => false,
                         'disabled' => true,
-                        'rules' => 'string|nullable|exists:' . config('measurementUnits.models.type.table') . ',id',
+                        'rules' => 'string|nullable|exists:' . config('measurementunits.models.type.table') . ',id',
                         'relation' => 'type'
                     ],
                     'measurementUnit' => [
                         'type' => 'select',
                         'multiple' => false,
                         'disabled' => true,
-                        'rules' => 'string|nullable|exists:' . config('measurementUnits.models.type.table') . ',id',
+                        'rules' => 'string|nullable|exists:' . config('measurementunits.models.type.table') . ',id',
                         'relation' => 'measurementUnit'
                     ],
                     'before' => ['number' => 'numeric|required'],
@@ -37,7 +37,7 @@ class TypeNotificationEditUpdateFieldsetsParameters extends FieldsetParametersFi
                     'repeat_every_measurement_unit_id' => [
                         'type' => 'select',
                         'multiple' => false,
-                        'rules' => 'string|nullable|exists:' . config('measurementUnits.models.measurementUnit.table') . ',id',
+                        'rules' => 'string|nullable|exists:' . config('measurementunits.models.measurementUnit.table') . ',id',
                         'relation' => 'repeatingMeasurementUnit'
                     ]
                 ],

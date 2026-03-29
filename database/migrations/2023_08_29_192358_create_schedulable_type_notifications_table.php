@@ -24,7 +24,7 @@ class CreateSchedulableTypeNotificationsTable extends Migration
 
             $table->string('repeat_every')->nullable();
             $table->string('repeat_every_measurement_unit_id', 16)->nullable();
-            $table->foreign('repeat_every_measurement_unit_id', 'type_notification_measurement_unit_id')->references('id')->on(config('measurementUnits.models.measurementUnit.table'));
+            $table->foreign('repeat_every_measurement_unit_id', 'type_notification_measurement_unit_id')->references('id')->on(config('measurementunits.models.measurementUnit.table'));
 
             $table->softDeletes();
             $table->timestamps();

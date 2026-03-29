@@ -19,7 +19,7 @@ class CreateSchedulesTypesTable extends Migration
 
             $table->string('validity')->nullable();
             $table->string('measurement_unit_id', 16);
-            $table->foreign('measurement_unit_id')->references('id')->on(config('measurementUnits.models.measurementUnit.table'));
+            $table->foreign('measurement_unit_id')->references('id')->on(config('measurementunits.models.measurementUnit.table'));
 
             $table->boolean('allow_multiple')->nullable();
 
