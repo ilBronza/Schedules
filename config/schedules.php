@@ -36,6 +36,15 @@ use IlBronza\Vehicles\Models\Vehicle;
 return [
     'routePrefix' => 'ibSchedules.',
 
+    'defaultRoles' => [
+        'superadmin',
+        'administrator',
+        'schedules',
+    ],
+
+    'routeRoles' => [
+    ],
+
     'applicableTo' => [
         User::class => 'users',
         Vehicle::class => 'vehicles'

@@ -2,6 +2,7 @@
 
 namespace IlBronza\Schedules;
 
+use IlBronza\Schedules\Http\Middleware\SchedulesMiddlewareRolesPermissions;
 use Illuminate\Support\ServiceProvider;
 
 class SchedulesServiceProvider extends ServiceProvider
@@ -17,6 +18,8 @@ class SchedulesServiceProvider extends ServiceProvider
         // $this->loadViewsFrom(__DIR__.'/../resources/views', 'ilbronza');
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadRoutesFrom(__DIR__.'/../routes/schedules.php');
+
+        $this->app['router']->aliasMiddleware('schedules.roles', SchedulesMiddlewareRolesPermissions::class);
 
         // Publishing is only necessary when using the CLI.
         if ($this->app->runningInConsole()) {

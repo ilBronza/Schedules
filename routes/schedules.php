@@ -3,7 +3,7 @@
 use IlBronza\Schedules\Schedules;
 
 Route::group([
-	'middleware' => ['web', 'auth'],
+	'middleware' => ['web', 'auth', 'schedules.roles'],
 	'prefix' => 'schedules-management',
 	'as' => config('schedules.routePrefix')
 	],
