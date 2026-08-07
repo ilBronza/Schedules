@@ -4,9 +4,14 @@ namespace IlBronza\Schedules;
 
 use IlBronza\CRUD\Providers\RouterProvider\IbRouter;
 use IlBronza\CRUD\Providers\RouterProvider\RoutedObjectInterface;
+use IlBronza\CRUD\Traits\IlBronzaPackages\IlBronzaPackagesTrait;
 
 class Schedules implements RoutedObjectInterface
 {
+	use IlBronzaPackagesTrait;
+
+	static $packageConfigPrefix = 'schedules';
+
     public function manageMenuButtons()
     {
         if(! $menu = app('menu'))
@@ -61,23 +66,6 @@ class Schedules implements RoutedObjectInterface
         //         'href' => IbRouter::route($this, 'kmreadings.index')
         //     ])
         // );
-    }
-
-    public function getRoutePrefix() : ? string
-    {
-        return config('schedules.routePrefix');
-    }
-
-    static function getController(string $target, string $controllerPrefix) : string
-    {
-        try
-        {
-            return config("schedules.models.{$target}.controllers.{$controllerPrefix}");
-        }
-        catch(\Throwable $e)
-        {
-            dd([$e->getMessage(), 'dichiara ' . "schedules.models.{$target}.controllers.{$controllerPrefix}"]);
-        }
     }
 
 }

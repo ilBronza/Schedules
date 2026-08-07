@@ -5,7 +5,8 @@ use IlBronza\Schedules\Schedules;
 Route::group([
 	'middleware' => ['web', 'auth', 'schedules.roles'],
 	'prefix' => 'schedules-management',
-	'as' => config('schedules.routePrefix')
+	'as' => config('schedules.routePrefix'),
+	'routeTranslationPrefix' => Schedules::getRouteTranslationPrefix(),
 	],
 	function()
 	{
