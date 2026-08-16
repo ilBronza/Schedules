@@ -23,3 +23,10 @@ Homestead.json
 .phpunit.result.cache
 
 .DS_Store
+
+# Testbench / ibtest generated artifacts
+.ibphp-tmp/
+tests/Fixtures/App/bootstrap/cache/*
+!tests/Fixtures/App/bootstrap/cache/.gitkeep
+tests/Fixtures/App/storage/logs/*
+!tests/Fixtures/App/storage/logs/.gitkeep
