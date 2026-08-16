@@ -12,8 +12,27 @@
     "homepage": "https://github.com/ilbronza/schedules",
     "keywords": ["Laravel", "Schedules"],
     "require": {
+        "php": "^8.2",
+        "laravel/framework": "^11.0",
+        "nesbot/carbon": "^3.0",
+        "spatie/laravel-activitylog": "^4.0",
+        "spatie/laravel-permission": "^6.0",
+        "ilbronza/buttons": "^2.5",
+        "ilbronza/crud": "^2.5",
+        "ilbronza/datatables": "^2.5",
+        "ilbronza/form": "^2.5",
+        "ilbronza/formfield": "^2.5",
+        "ilbronza/measurementunits": "^2.5",
+        "ilbronza/notifications": "^2.5"
     },
     "require-dev": {
+        "orchestra/testbench": "^9.0"
+    },
+    "suggest": {
+        "ilbronza/filecabinet": "Enables the legacy Dossierrow expiration-date integration"
+    },
+    "scripts": {
+        "test": "phpunit"
     },
     "autoload": {
         "psr-4": {
@@ -22,8 +41,12 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "IlBronza\\Schedules\\Tests\\": "tests"
-        }
+            "IlBronza\\Schedules\\Tests\\": "tests",
+            "App\\": "tests/Fixtures/App/app"
+        },
+        "files": [
+            "tests/helpers.php"
+        ]
     },
     "extra": {
         "laravel": {
