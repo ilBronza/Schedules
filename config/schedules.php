@@ -1,8 +1,5 @@
 <?php
 
-use App\Models\ProjectSpecific\User;
-use IlBronza\Schedules\Http\Controllers\MeasurementUnits\MeasurementUnitCrudController;
-use IlBronza\Schedules\Http\Controllers\Providers\FieldsGroups\MeasurementUnitFieldsGroupParametersFile;
 use IlBronza\Schedules\Http\Controllers\Providers\FieldsGroups\ScheduleIndexFieldsGroupParametersFile;
 use IlBronza\Schedules\Http\Controllers\Providers\FieldsGroups\ScheduleRelatedFieldsGroupParametersFile;
 use IlBronza\Schedules\Http\Controllers\Providers\FieldsGroups\ScheduledNotificationRelatedFieldsGroupParametersFile;
@@ -11,12 +8,11 @@ use IlBronza\Schedules\Http\Controllers\Providers\FieldsGroups\TypeApplicableMod
 use IlBronza\Schedules\Http\Controllers\Providers\FieldsGroups\TypeFieldsGroupParametersFile;
 use IlBronza\Schedules\Http\Controllers\Providers\FieldsGroups\TypeNotificationFieldsGroupParametersFile;
 use IlBronza\Schedules\Http\Controllers\Providers\FieldsGroups\TypeNotificationRelatedFieldsGroupParametersFile;
-use IlBronza\Schedules\Http\Controllers\Providers\Fieldsets\MeasurementUnitCreateStoreFieldsetsParameters;
-use IlBronza\Schedules\Http\Controllers\Providers\Fieldsets\MeasurementUnitEditUpdateFieldsetsParameters;
+use IlBronza\Schedules\Http\Controllers\Providers\Fieldsets\ScheduleShowFieldsetsParameters;
 use IlBronza\Schedules\Http\Controllers\Providers\Fieldsets\TypeCreateStoreFieldsetsParameters;
 use IlBronza\Schedules\Http\Controllers\Providers\Fieldsets\TypeEditUpdateFieldsetsParameters;
 use IlBronza\Schedules\Http\Controllers\Providers\Fieldsets\TypeNotificationEditUpdateFieldsetsParameters;
-use IlBronza\Schedules\Http\Controllers\Providers\RelationshipsManagers\MeasurementUnitRelationManager;
+use IlBronza\Schedules\Http\Controllers\Providers\Fieldsets\TypeShowFieldsetsParameters;
 use IlBronza\Schedules\Http\Controllers\Providers\RelationshipsManagers\TypeNotificationRelationshipManager;
 use IlBronza\Schedules\Http\Controllers\Providers\RelationshipsManagers\TypeRelationshipManager;
 use IlBronza\Schedules\Http\Controllers\ScheduledNotifications\ScheduledNotificationCrudController;
@@ -25,16 +21,28 @@ use IlBronza\Schedules\Http\Controllers\TypeNotifications\TypeNotificationCrudCo
 use IlBronza\Schedules\Http\Controllers\Types\TypeApplicateClassnameController;
 use IlBronza\Schedules\Http\Controllers\Types\TypeApplicateController;
 use IlBronza\Schedules\Http\Controllers\Types\TypeCrudController;
-use IlBronza\Schedules\Models\MeasurementUnit;
+use IlBronza\Schedules\Http\Controllers\Types\TypeEditUpdateController;
 use IlBronza\Schedules\Models\Schedule;
 use IlBronza\Schedules\Models\ScheduledNotification;
+use IlBronza\Schedules\Models\ScheduledNotificationDispatch;
 use IlBronza\Schedules\Models\Type;
 use IlBronza\Schedules\Models\TypeNotification;
-use IlBronza\Vehicles\Models\Vehicle;
 
 
 return [
     'routePrefix' => 'ibSchedules.',
+    'validateConfiguration' => true,
+
+    'evaluator' => [
+        'enabled' => true,
+        'cron' => '* * * * *',
+        'chunkSize' => 100,
+        'overlapExpirationMinutes' => 10,
+    ],
+
+    'notifications' => [
+        'roleModel' => null,
+    ],
 
     'defaultRoles' => [
         'superadmin',
@@ -45,35 +53,16 @@ return [
     'routeRoles' => [
     ],
 
-    'applicableTo' => [
-        User::class => 'users',
-        Vehicle::class => 'vehicles'
-    ],
+    // Model class => stable URL alias (also used as select label).
+    // Example: \App\Models\Vehicle::class => 'vehicles',
+    // Route params must use the alias; never pass a PHP classname in the URL.
+    'applicableTo' => [],
 
     'models' => [
-        // 'measurementUnit' => [
-        //     'class' => MeasurementUnit::class,
-        //     'table' => 'schedules__measurement_units',
-        //     'fieldsGroupsFiles' => [
-        //         'index' => MeasurementUnitFieldsGroupParametersFile::class
-        //     ],
-        //     'relationshipsManagerClasses' => [
-        //         'show' => MeasurementUnitRelationManager::class
-        //     ],
-        //     'parametersFiles' => [
-        //         'create' => MeasurementUnitCreateStoreFieldsetsParameters::class,
-        //         'edit' => MeasurementUnitEditUpdateFieldsetsParameters::class
-        //     ],
-        //     'controllers' => [
-        //         'index' => MeasurementUnitCrudController::class,
-        //         'create' => MeasurementUnitCrudController::class,
-        //         'store' => MeasurementUnitCrudController::class,
-        //         'show' => MeasurementUnitCrudController::class,
-        //         'edit' => MeasurementUnitCrudController::class,
-        //         'update' => MeasurementUnitCrudController::class,
-        //         'destroy' => MeasurementUnitCrudController::class,
-        //     ]
-        // ],
+        'scheduledNotificationDispatch' => [
+            'class' => ScheduledNotificationDispatch::class,
+            'table' => 'schedules__scheduled_notification_dispatches',
+        ],
         'scheduledNotification' => [
             'class' => ScheduledNotification::class,
             'table' => 'schedules__scheduled_notifications',
@@ -106,17 +95,14 @@ return [
             // 'relationshipsManagerClasses' => [
             //     'show' => TypeRelationManager::class
             // ],
-            // 'parametersFiles' => [
-            //     'create' => TypeCreateStoreFieldsetsParameters::class
-            // ],
+            'parametersFiles' => [
+                'show' => ScheduleShowFieldsetsParameters::class,
+            ],
             'controllers' => [
                 'index' => ScheduleCrudController::class,
-                'create' => ScheduleCrudController::class,
-                'store' => ScheduleCrudController::class,
                 'show' => ScheduleCrudController::class,
-                'edit' => ScheduleCrudController::class,
-                'update' => ScheduleCrudController::class,
-                'destroy' => ScheduleCrudController::class,
+                'manage' => ScheduleCrudController::class,
+                'manageMany' => ScheduleCrudController::class,
             ]
         ],
         'type' => [
@@ -132,7 +118,8 @@ return [
             ],
             'parametersFiles' => [
                 'create' => TypeCreateStoreFieldsetsParameters::class,
-                'edit' => TypeEditUpdateFieldsetsParameters::class
+                'edit' => TypeEditUpdateFieldsetsParameters::class,
+                'show' => TypeShowFieldsetsParameters::class,
             ],
             'controllers' => [
                 'applicate' => TypeApplicateController::class,
@@ -141,8 +128,8 @@ return [
                 'create' => TypeCrudController::class,
                 'store' => TypeCrudController::class,
                 'show' => TypeCrudController::class,
-                'edit' => TypeCrudController::class,
-                'update' => TypeCrudController::class,
+                'edit' => TypeEditUpdateController::class,
+                'update' => TypeEditUpdateController::class,
                 'destroy' => TypeCrudController::class,
             ]
         ],

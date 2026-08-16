@@ -4,11 +4,7 @@ namespace IlBronza\Schedules\Helpers\Calculators;
 
 use IlBronza\Schedules\Helpers\Applicators\ScheduleApplicatorHelperGettersSettersTraits;
 use IlBronza\Schedules\Models\Schedule;
-
 use IlBronza\Schedules\Models\Type;
-
-use function get_class;
-use function method_exists;
 
 class ScheduleCurrentValueCalculatorHelper
 {
@@ -16,6 +12,7 @@ class ScheduleCurrentValueCalculatorHelper
 	public Type $type;
 
 	use ScheduleApplicatorHelperGettersSettersTraits;
+
 	/**
 	 * this function get the current schedule value
 	 * to be used to calculate the remaining time
@@ -27,8 +24,6 @@ class ScheduleCurrentValueCalculatorHelper
 	 */
 	static function getCurrentValueFromSchedule(Schedule $schedule)
 	{
-		// dd('cossa serve questo');
-
 		$helper = new static();
 		$helper->setSchedule($schedule);
 		$helper->setType($schedule->getType());
@@ -39,13 +34,6 @@ class ScheduleCurrentValueCalculatorHelper
 
 	public function getModelScheduleCurrentValue() : mixed
 	{
-		$valueGetterMethod = $this->getModelSchedulesCurrentValueGetterMethod();
-
-		if(! method_exists($this->getModel(), $valueGetterMethod))
-			throw new \Exception('Method ' . $valueGetterMethod . ' not found in ' . get_class($this->getModel()));
-
-		return $this->getModel()->{$valueGetterMethod}();
+		return $this->resolveModelScheduleCurrentValue();
 	}
-
-
 }

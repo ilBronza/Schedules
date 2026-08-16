@@ -9,10 +9,42 @@ use IlBronza\Schedules\Models\Type;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Collection;
+use RuntimeException;
 
 trait InteractsWithSchedule
 {
     public Type $applicatingSchedule;
+
+    /**
+     * @return list<string>
+     */
+    public function getAllowedScheduleValueMethods(): array
+    {
+        if (! property_exists($this, 'allowedScheduleValueMethods')) {
+            return [];
+        }
+
+        return $this->allowedScheduleValueMethods;
+    }
+
+    public function getScheduleCurrentValue(string $method): mixed
+    {
+        if (! in_array($method, $this->getAllowedScheduleValueMethods(), true)) {
+            throw new RuntimeException(
+                "Schedule value method [{$method}] is not allowlisted on "
+                . static::class
+            );
+        }
+
+        if (! method_exists($this, $method)) {
+            throw new RuntimeException(
+                "Schedule value method [{$method}] does not exist on "
+                . static::class
+            );
+        }
+
+        return $this->{$method}();
+    }
 
     /**
      * returns name for the model to appear 
@@ -26,31 +58,6 @@ trait InteractsWithSchedule
 		return $this->getMorphClass();
 	}
 
-    // /**
-    //  * returns an array to populate 
-    //  * the possible schedulable elements columns
-    //  * in application table
-    //  * 
-    //  * es. Vehicle::getSchedulableModelTableFieldsArray : array [
-    //  * 
-    //         'fields' => 
-    //         [
-    //             'mySelfPrimary' => 'primary',
-    //             'mySelfEdit' => 'links.edit',
-    //             'mySelfSee' => 'links.see',
-    //             'mySelfApplicate' => [
-    //                 'type' => 'links.link',
-    //                 'function' => 'getApplicateIndexUrl'
-    //             ],
-
-    //             'id' => 'flat',
-    //             'name' => 'flat',
-    //             'description' => 'flat',
-
-    //             'mySelfDelete' => 'links.delete'
-    //         ]
-    //  * ]
-    //  **/
     public function getSchedulableModelTableFieldsArray() : array
     {
         return [
@@ -69,24 +76,17 @@ trait InteractsWithSchedule
 		return $this->schedules;
 	}
 
-    // public function deployments(): HasManyThrough
-    // {
-    //     return $this->hasManyThrough(
-    //         Deployment::class,
-    //         Environment::class,
-    //         'project_id', // Foreign key on the environments table...
-    //         'environment_id', // Foreign key on the deployments table...
-    //         'id', // Local key on the projects table...
-    //         'id' // Local key on the environments table...
-    //     );
-    // }
-
     public function scheduledNotifications()
     {
+        $schedulesTable = config('schedules.models.schedule.table');
+
         return $this->hasManyThrough(
             ScheduledNotification::getProjectClassName(),
             Schedule::getProjectClassName(),
             'schedulable_id'
+        )->where(
+            $schedulesTable . '.schedulable_type',
+            $this->getMorphClass()
         );
     }
 
@@ -120,8 +120,19 @@ trait InteractsWithSchedule
 
     public function scheduleTypes()
     {
-        return $this->belongsToMany(Type::class, config('schedules.models.schedule.table'), 'schedulable_id', 'type_id')
-                ->where('schedulable_type', static::class);
+        $schedulesTable = config('schedules.models.schedule.table');
+
+        return $this->belongsToMany(
+            Type::getProjectClassName(),
+            $schedulesTable,
+            'schedulable_id',
+            'type_id'
+        )->where(
+            $schedulesTable . '.schedulable_type',
+            $this->getMorphClass()
+        )->whereNull(
+            $schedulesTable . '.deleted_at'
+        );
     }
 
     public function getApplicatedScheduleTypes() : Collection
@@ -138,22 +149,61 @@ trait InteractsWithSchedule
     {
         return IbRouter::route(app('schedules'), 'types.applicate.classname.index', [
             'type' => $this->getApplicatingScheduleType()->getKey(),
-            'classname' => get_class($this)
+            'alias' => $this->resolveScheduleApplicableAlias(),
         ]);
+    }
+
+    protected function resolveScheduleApplicableAlias(): string
+    {
+        $classname = static::class;
+        $matches = [];
+
+        foreach (config('schedules.applicableTo', []) as $configuredClass => $alias) {
+            if ($configuredClass === $classname) {
+                $matches[] = $alias;
+            }
+        }
+
+        if ($matches === []) {
+            throw new RuntimeException(
+                "Schedule applicable alias is not configured for model [{$classname}]"
+            );
+        }
+
+        if (count($matches) > 1) {
+            throw new RuntimeException(
+                "Schedule applicable alias configuration is ambiguous for model [{$classname}]"
+            );
+        }
+
+        $alias = $matches[0];
+
+        if (! is_string($alias) || $alias === '') {
+            throw new RuntimeException(
+                "Schedule applicable alias is invalid for model [{$classname}]"
+            );
+        }
+
+        return $alias;
     }
 
     public function getSchedulableElementsQuery() : Builder
     {
         $query = static::query();
 
-        $scopeMethodName = $this->getApplicatingScheduleType()->getTargetScopeNameMethodName();
+        $type = $this->getApplicatingScheduleType();
+        $scopeMethodName = $type->getTargetScopeNameMethodName();
+        $scopeName = $type->getTargetScopeName();
 
-        $scopeName = $this->getApplicatingScheduleType()->getTargetScopeName();
+        if (! method_exists($this, $scopeMethodName)) {
+            throw new RuntimeException(
+                'Schedule type ['.$type->getKey().'] requires missing scope method'
+                .' ['.$scopeMethodName.'] on model ['.static::class.']'
+                .' for field ['.$scopeName.'].'
+            );
+        }
 
-        if(method_exists($this, $scopeMethodName))
-            return $query->$scopeName();
-
-        return $query;
+        return $query->$scopeName();
     }
 
     public function setApplicatingScheduleType(Type $type)
