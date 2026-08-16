@@ -3,24 +3,56 @@
 namespace IlBronza\Schedules\Models;
 
 
+use Carbon\CarbonInterface;
 use IlBronza\MeasurementUnits\BaseMeasurementUnitHelpers\BaseMeasurementUnitHelper;
 use IlBronza\MeasurementUnits\Models\MeasurementUnit;
-use IlBronza\Schedules\Helpers\Applicators\ScheduleApplicatorHelper;
 use IlBronza\Schedules\Helpers\Applicators\ScheduleDeadlineCalculatorHelper;
 use IlBronza\Schedules\Helpers\Applicators\ScheduleStartingCalculatorHelper;
 use IlBronza\Schedules\Helpers\Calculators\ScheduleCurrentValueCalculatorHelper;
+use IlBronza\Schedules\Helpers\Calculators\ScheduleValueComparator;
 use IlBronza\Schedules\Models\ScheduledNotification;
 use IlBronza\Schedules\Models\Type;
-use IlBronza\Ukn\Ukn;
+use IlBronza\Schedules\Services\ScheduleSoftDeleteLifecycle;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Log;
+use RuntimeException;
 use function is_array;
 
 // use IlBronza\Schedules\Models\TypeNotification;
 
 class Schedule extends SchedulePackageBaseModel
 {
+	public const STATUS_CURRENT = 'current';
+	public const STATUS_EXPIRED = 'expired';
+	public const STATUS_MANAGED = 'managed';
+
+	static $deletingRelationships = ['scheduledNotifications'];
+
+	protected $casts = [
+		'expired_at' => 'datetime',
+		'managed_at' => 'datetime',
+	];
+
+	protected static function booted(): void
+	{
+		static::deleting(function (Schedule $schedule): void {
+			$lifecycle = app(ScheduleSoftDeleteLifecycle::class);
+
+			if ($schedule->isForceDeleting()) {
+				$lifecycle->cascadeForceDeleteScheduledNotifications($schedule);
+
+				return;
+			}
+
+			$lifecycle->cascadeSoftDeleteScheduledNotifications($schedule);
+		});
+
+		static::restored(function (Schedule $schedule): void {
+			app(ScheduleSoftDeleteLifecycle::class)
+				->cascadeRestoreScheduledNotifications($schedule);
+		});
+	}
+
 	public function schedulable()
 	{
 		return $this->morphTo();
@@ -28,7 +60,15 @@ class Schedule extends SchedulePackageBaseModel
 
 	public function getSchedulable() : Model
 	{
-		return $this->schedulable;
+		$schedulable = $this->schedulable;
+
+		if (is_null($schedulable)) {
+			throw new RuntimeException(
+				'Schedule ['.$this->getKey().'] is missing required schedulable morph.'
+			);
+		}
+
+		return $schedulable;
 	}
 
 	public function type()
@@ -48,20 +88,26 @@ class Schedule extends SchedulePackageBaseModel
 
 	public function isExpired() : bool
 	{
-		if(! $deadlineValue = $this->getDeadlineValue())
-			return null;
-
-		return $deadlineValue < $this->getCurrentValue();
+		return $this->getValueComparator()->hasReached(
+			$this,
+			$this->getCurrentValue(),
+			$this->getDeadlineValue()
+		);
 	}
 
-	public function getPercentageValidityLimit() : int
+	protected function getValueComparator(): ScheduleValueComparator
 	{
-		return $this->percentage_validity_limit ?? 99;
+		return app(ScheduleValueComparator::class);
+	}
+
+	public function getPercentageValidityLimit(): float
+	{
+		return $this->getType()->getPercentageValidityLimit();
 	}
 
 	public function isExpiring() : bool
 	{
-		return $this->getPercentageValidityAttribute() > $this->getPercentageValidityLimit();
+		return $this->getPercentageValidityAttribute() >= $this->getPercentageValidityLimit();
 	}
 
 	// public function typeNotifications()
@@ -71,7 +117,7 @@ class Schedule extends SchedulePackageBaseModel
 
 	public function scheduledNotifications()
 	{
-		return $this->hasMany(ScheduledNotification::class);
+		return $this->hasMany(ScheduledNotification::getProjectClassName());
 	}
 
 	public function typeNotifications()
@@ -82,10 +128,31 @@ class Schedule extends SchedulePackageBaseModel
 
 	public function getType() : Type
 	{
-		if($this->relationLoaded('type'))
-			return $this->type;
+		if (is_null($this->type_id)) {
+			throw new RuntimeException(
+				'Schedule ['.$this->getKey().'] is missing required type_id.'
+			);
+		}
 
-		return Type::getProjectClassName()::findCached($this->type_id);
+		if($this->relationLoaded('type')) {
+			if (is_null($this->type)) {
+				throw new RuntimeException(
+					'Schedule ['.$this->getKey().'] type relation is null for type_id ['.$this->type_id.'].'
+				);
+			}
+
+			return $this->type;
+		}
+
+		$type = Type::getProjectClassName()::findCached($this->type_id);
+
+		if (is_null($type)) {
+			throw new RuntimeException(
+				'Schedule ['.$this->getKey().'] references missing type_id ['.$this->type_id.'].'
+			);
+		}
+
+		return $type;
 	}
 
 	public function setType(Type $type)
@@ -102,12 +169,15 @@ class Schedule extends SchedulePackageBaseModel
 		return cache()->remember(
 			$this->cacheKey('current_value'),
 			60,
-			function ()
-			{
-				return $this->getMeasurementUnit()->getHelper()->parseMeasurementUnitOutputValue(
-					ScheduleCurrentValueCalculatorHelper::getCurrentValueFromSchedule($this)
-				);
-			});
+			fn () => $this->calculateCurrentValue()
+		);
+	}
+
+	public function calculateCurrentValue(): mixed
+	{
+		$currentValue = ScheduleCurrentValueCalculatorHelper::getCurrentValueFromSchedule($this);
+
+		return $this->parseOutputValueByType($currentValue);
 	}
 
 	public function getCurrentValue() : mixed
@@ -115,43 +185,55 @@ class Schedule extends SchedulePackageBaseModel
 		return $this->current_value;
 	}
 
+	/**
+	 * Progress through the schedule as a percentage of the starting→deadline span.
+	 *
+	 * percentage = (delta / span) * 100 where
+	 *   span  = difference(starting, deadline)
+	 *   delta = difference(starting, current)
+	 *
+	 * Semantics:
+	 * - deadline reached (ScheduleValueComparator) → 100
+	 * - current == starting → 0
+	 * - current before starting → negative percentage
+	 * - current past deadline is covered by the early 100 return
+	 * - floats use raw IEEE-754 arithmetic (no epsilon)
+	 * - dates/timezones are delegated to the measurement unit helper
+	 *
+	 * @throws RuntimeException when starting and deadline yield a zero span
+	 */
 	public function getPercentageValidityAttribute() : float
 	{
-		try
-		{
-			if(! $deadlineValue = $this->getDeadlineValue())
-				return null;			
-		}
-		catch(\Throwable $e)
-		{
-			Log::critical($e->getMessage() . ' Siamo qua');
-				return 0;
-		}
+		$deadlineValue = $this->getDeadlineValue();
+		$currentValue = $this->getCurrentValue();
 
-		if($deadlineValue < $this->getCurrentValue())
+		if($this->getValueComparator()->hasReached($this, $currentValue, $deadlineValue))
 			return 100;
 
-		if(! $startingValue = $this->getStartingValue())
-			$startingValue = $this->calculateStarting();
+		$rawStartingValue = $this->getAttributes()['starting_value'] ?? null;
+
+		if (is_null($rawStartingValue)) {
+			$startingValue = ScheduleStartingCalculatorHelper::calculateFromSchedule($this);
+		} else {
+			$startingValue = $this->getStartingValue();
+		}
 
 		$span = $this->getMeasurementUnitHelper()->calculateDifference($startingValue, $deadlineValue);
 
-		$delta = $this->getMeasurementUnitHelper()->calculateDifference($startingValue, $this->getCurrentValue());
+		if ($span == 0) {
+			throw new RuntimeException(
+				'Schedule ['.$this->getKey().'] has a zero span between starting and deadline; percentage validity cannot be computed.'
+			);
+		}
+
+		$delta = $this->getMeasurementUnitHelper()->calculateDifference($startingValue, $currentValue);
 
 		return $delta / ($span / 100);
 	}
 
-	public function  getPercentageValidity(bool $forceCalculation = false)
+	public function getPercentageValidity(): float
 	{
-		if($forceCalculation)
-			return $this->percentage_validity;
-
 		return $this->percentage_validity;
-
-		return cache()->remember(
-			$this->cacheKey('percentage_validity'),
-			3600,
-			function () { return $this->percentage_validity; });
 	}
 
     public function setStarting(mixed $value, bool $save = false)
@@ -164,10 +246,6 @@ class Schedule extends SchedulePackageBaseModel
 
 	public function setDeadline(mixed $value = null, bool $save = false)
 	{
-		if(($this->deadline_value)&&($this->deadline_value != $value))
-			if(config('schedules.notifyWhenDeadlineChanges', true))
-				Ukn::w(__('schedules::messages.deadlineChangedToForElement', ['deadline' => $value, 'element' => $this->getModel()->getName()]));
-
 		$this->deadline_value = $value;
 
 		if($save)
@@ -188,19 +266,9 @@ class Schedule extends SchedulePackageBaseModel
 
     public function getStartingValue() : mixed
     {
-		try
-		{
-			return $this->parseOutputValueByType(
-				$this->starting_value
-			);
-		}
-		catch(\Exception $e)
-		{
-			if($e->getCode() == 9901)
-				return null;
-
-			throw $e;
-		}
+		return $this->parseOutputValueByType(
+			$this->starting_value
+		);
     }
 
     public function getDeadlineValue() : mixed
@@ -210,27 +278,65 @@ class Schedule extends SchedulePackageBaseModel
     	);
     }
 
-    public function calculateDeadline() : mixed
+    public function calculateDeadline(bool $save = true) : mixed
     {
     	$result = ScheduleDeadlineCalculatorHelper::calculateFromSchedule(
 			$this
 		);
 
-		$this->setDeadline($result, true);
+		$this->setDeadline($result, $save);
 
 		return $result;
     }
 
-    public function calculateStarting() : mixed
+    public function calculateStarting(bool $save = true) : mixed
     {
 		$result = ScheduleStartingCalculatorHelper::calculateFromSchedule(
 			$this
 		);
 
-		$this->setStarting($result, true);
+		$this->setStarting($result, $save);
 
 		return $result;
     }
+
+	public function markExpired(): void
+	{
+		$this->expired_at = now();
+		$this->save();
+	}
+
+	public function markManaged(CarbonInterface $managedAt): void
+	{
+		$this->managed_at = $managedAt;
+		$this->save();
+	}
+
+	public function isManaged(): bool
+	{
+		return ! is_null($this->managed_at);
+	}
+
+	public function isMarkedExpired(): bool
+	{
+		return ! is_null($this->expired_at);
+	}
+
+	public function getStatusAttribute(): string
+	{
+		if($this->isManaged())
+			return self::STATUS_MANAGED;
+
+		if($this->isMarkedExpired())
+			return self::STATUS_EXPIRED;
+
+		return self::STATUS_CURRENT;
+	}
+
+	public function isCurrent(): bool
+	{
+		return is_null($this->expired_at) && is_null($this->managed_at);
+	}
 
 	public function scopeNotExpired($query)
 	{

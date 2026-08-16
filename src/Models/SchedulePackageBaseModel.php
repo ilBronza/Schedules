@@ -36,7 +36,7 @@ class SchedulePackageBaseModel extends PackagedBaseModel
 
     static function getByKey(string $id) : static
     {
-        return static::getProjectClassName()::find($id);
+        return static::getProjectClassName()::findOrFail($id);
     }
 
     
