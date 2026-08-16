@@ -16,13 +16,12 @@ class CreateSchedulesSchedulesTable extends Migration
         Schema::create(config('schedules.models.schedule.table'), function (Blueprint $table) {
             $table->uuid('id')->primary();
 
-            $table->unsignedBigInteger('user_id')->nullable();
-            $table->foreign('user_id')->references('id')->on('users');
-
-            $table->uuid('type_id')->nullable();
+            $table->string('type_id');
             $table->foreign('type_id')->references('id')->on(config('schedules.models.type.table'));
 
-            $table->nullableUuidMorphs('schedulable');
+            $table->string('schedulable_type');
+            $table->string('schedulable_id');
+            $table->index(['schedulable_type', 'schedulable_id']);
 
             $table->string('starting_value', 32)->nullable();
             $table->string('deadline_value', 32);

@@ -22,7 +22,7 @@ class CreateSchedulesNotificationsTable extends Migration
             $table->uuid('notification_id')->nullable();
             $table->foreign('notification_id')->references('id')->on('notifications');
 
-            $table->uuid('type_notification_id')->nullable();
+            $table->string('type_notification_id');
             $table->foreign('type_notification_id')->references('id')->on(config('schedules.models.typeNotification.table'));
 
             $table->string('deadline_value');

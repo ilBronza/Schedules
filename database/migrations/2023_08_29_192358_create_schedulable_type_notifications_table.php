@@ -16,10 +16,10 @@ class CreateSchedulableTypeNotificationsTable extends Migration
         Schema::create(config('schedules.models.typeNotification.table'), function (Blueprint $table) {
             $table->string('id')->primary();
 
-            $table->uuid('type_id')->nullable();
+            $table->string('type_id');
             $table->foreign('type_id')->references('id')->on(config('schedules.models.type.table'));
 
-            $table->string('before')->nullable();
+            $table->string('before');
             $table->unsignedSmallInteger('urgency')->nullable();
 
             $table->string('repeat_every')->nullable();
