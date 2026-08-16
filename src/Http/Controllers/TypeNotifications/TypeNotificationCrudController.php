@@ -12,7 +12,9 @@ use IlBronza\CRUD\Traits\CRUDRelationshipTrait;
 use IlBronza\CRUD\Traits\CRUDShowTrait;
 use IlBronza\Schedules\Http\Controllers\CrudSchedulesCrudController;
 use IlBronza\Schedules\Models\Type;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use RuntimeException;
 
 class TypeNotificationCrudController extends CrudSchedulesCrudController
 {
@@ -29,6 +31,8 @@ class TypeNotificationCrudController extends CrudSchedulesCrudController
     public $avoidCreateButton = true;
     public $saveAndNew = true;
 
+    protected Type $parentType;
+
 	public $allowedMethods = [
 		'index',
         'create',
@@ -43,32 +47,51 @@ class TypeNotificationCrudController extends CrudSchedulesCrudController
     public function getModelDefaultParameters() : array
     {
         return [
-            'type_id' => $this->type->getKey()
+            'type_id' => $this->parentType->getKey(),
         ];
     }
 
     public function getCreateUrl()
     {
-        return IbRouter::route(app('schedules'), 'types.typeNotifications.create', ['type' => $this->type]);
+        return IbRouter::route(app('schedules'), 'types.typeNotifications.create', [
+            'type' => $this->parentType->getKey(),
+        ]);
     }
 
-    public function createFromType(Type $type)
+    public function createFromType(string $type)
     {
-        $this->type = $type;
+        $this->parentType = $this->resolveParentType($type);
 
         return $this->create();
     }
 
-    public function store(Request $request, Type $type)
+    public function store(Request $request, string $type)
     {
-        $this->type = $type;
+        $this->parentType = $this->resolveParentType($type);
 
         return $this->_store($request);
     }
 
     public function getStoreModelAction()
     {
-        return IbRouter::route(app('schedules'), 'types.typeNotifications.store', ['type' => $this->type]);
+        return IbRouter::route(app('schedules'), 'types.typeNotifications.store', [
+            'type' => $this->parentType->getKey(),
+        ]);
+    }
+
+    public function makeModel() : Model
+    {
+        $model = parent::makeModel();
+
+        $model->type_id = (string) $this->parentType->getKey();
+
+        if ($model->type_id === '') {
+            throw new RuntimeException(
+                'TypeNotification requires type_id from the parent Type route.'
+            );
+        }
+
+        return $model;
     }
 
     public function show(string $typeNotification)
@@ -89,6 +112,10 @@ class TypeNotificationCrudController extends CrudSchedulesCrudController
     {
         $typeNotification = $this->findModel($typeNotification);
 
+        $request->validate([
+            'type_id' => 'prohibited',
+        ]);
+
         return $this->_update($request, $typeNotification);
     }
 
@@ -97,5 +124,18 @@ class TypeNotificationCrudController extends CrudSchedulesCrudController
         $typeNotification = $this->findModel($typeNotification);
 
         return $this->_destroy($typeNotification);
+    }
+
+    protected function resolveParentType(string $typeKey): Type
+    {
+        $type = Type::getProjectClassName()::query()->find($typeKey);
+
+        if (is_null($type)) {
+            throw new RuntimeException(
+                "Type [{$typeKey}] not found for type notification route."
+            );
+        }
+
+        return $type;
     }
 }

@@ -13,7 +13,6 @@ class ScheduleIndexFieldsGroupParametersFile extends FieldsGroupParametersFile
             'fields' => 
             [
                 'mySelfPrimary' => 'primary',
-                'mySelfEdit' => 'links.edit',
                 'mySelfSee' => 'links.see',
                 'created_at' => 'dates.date',
 
@@ -24,8 +23,9 @@ class ScheduleIndexFieldsGroupParametersFile extends FieldsGroupParametersFile
                 'deadline_value' => 'flat',
 //                'percentage_validity' => 'utilities.milestone',
                 'current_value' => 'flat',
-
-                'mySelfDelete' => 'links.delete'
+                'status' => 'flat',
+                'expired_at' => 'dates.date',
+                'managed_at' => 'dates.date',
             ]
         ];
 	}

@@ -2,41 +2,58 @@
 
 namespace IlBronza\Schedules\Http\Controllers\Schedules;
 
+use IlBronza\Buttons\Button;
 use IlBronza\CRUD\Providers\RouterProvider\IbRouter;
-use IlBronza\CRUD\Traits\CRUDCreateStoreTrait;
-use IlBronza\CRUD\Traits\CRUDDeleteTrait;
-use IlBronza\CRUD\Traits\CRUDEditUpdateTrait;
 use IlBronza\CRUD\Traits\CRUDIndexTrait;
 use IlBronza\CRUD\Traits\CRUDPlainIndexTrait;
 use IlBronza\CRUD\Traits\CRUDRelationshipTrait;
 use IlBronza\CRUD\Traits\CRUDShowTrait;
 use IlBronza\Schedules\Http\Controllers\CrudSchedulesCrudController;
+use IlBronza\Schedules\Services\ScheduleManager;
 use Illuminate\Http\Request;
 
 class ScheduleCrudController extends CrudSchedulesCrudController
 {
 	use CRUDIndexTrait;
 	use CRUDPlainIndexTrait;
-    use CRUDCreateStoreTrait;
-    use CRUDEditUpdateTrait;
     use CRUDShowTrait;
-    use CRUDDeleteTrait;
 
     use CRUDRelationshipTrait;
 
     public $configModelClassName = 'schedule';
     public $avoidCreateButton = true;
-    public $saveAndNew = true;
+    public $canEditModelInstance = false;
+
+    public function getEditModelIsntanceUrl()
+    {
+        return false;
+    }
 
 	public $allowedMethods = [
 		'index',
-        'create',
-        'store',
-        'edit',
-        'update',
         'show',
-        'destroy'
+        'manage',
+        'manageMany',
 	];
+
+    public function addIndexButtons(): void
+    {
+        $button = Button::create([
+            'href' => IbRouter::route(
+                app('schedules'),
+                'schedules.manageMany'
+            ),
+            'text' => 'schedules::schedules.manageSelected',
+            'icon' => 'check',
+        ]);
+
+        $button->setAjaxTableButton();
+        $button->setReturnConfirm(
+            __('schedules::schedules.confirmManageSelected')
+        );
+
+        $this->getTable()->addButton($button);
+    }
 
 	public function getIndexElements()
 	{
@@ -56,24 +73,52 @@ class ScheduleCrudController extends CrudSchedulesCrudController
         return $this->_show($schedule);
     }
 
-    public function edit(string $schedule)
-    {
-        $schedule = $this->findModel($schedule);
+    public function manage(
+        string $schedule,
+        ScheduleManager $manager
+    ): array {
+        $managedSchedule = $manager->manage(
+            $this->findModel($schedule)
+        );
 
-        return $this->_edit($schedule);
+        return $this->managedResponse(
+            1,
+            $managedSchedule->getKey()
+        );
     }
 
-    public function update(Request $request, string $schedule)
-    {
-        $schedule = $this->findModel($schedule);
+    public function manageMany(
+        Request $request,
+        ScheduleManager $manager
+    ): array {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => [
+                'required',
+                'string',
+                'distinct',
+                'exists:' . config('schedules.models.schedule.table') . ',id',
+            ],
+        ]);
 
-        return $this->_update($request, $schedule);
+        $managedSchedules = $manager->manageMany($validated['ids']);
+
+        return $this->managedResponse($managedSchedules->count());
     }
 
-    public function destroy($schedule)
-    {
-        $schedule = $this->findModel($schedule);
-
-        return $this->_destroy($schedule);
+    protected function managedResponse(
+        int $count,
+        ?string $scheduleId = null
+    ): array {
+        return [
+            'success' => true,
+            'message' => trans_choice(
+                'schedules::schedules.managedSuccessfully',
+                $count,
+                ['count' => $count]
+            ),
+            'schedule_id' => $scheduleId,
+            'ibaction' => 'reloadTable',
+        ];
     }
 }

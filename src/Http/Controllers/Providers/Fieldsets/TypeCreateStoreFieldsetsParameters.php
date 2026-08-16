@@ -3,13 +3,20 @@
 namespace IlBronza\Schedules\Http\Controllers\Providers\Fieldsets;
 
 use IlBronza\Form\Helpers\FieldsetsProvider\FieldsetParametersFile;
-use Spatie\Permission\Models\Role;
+use IlBronza\Schedules\Services\ScheduleNotificationRoleModelResolver;
 
 class TypeCreateStoreFieldsetsParameters extends FieldsetParametersFile
 {
     public function getRolesArray() : array
     {
-        return Role::all()->pluck('name', 'id')->toArray();
+        return $this->getRoleModelClass()::query()
+            ->pluck('name', 'id')
+            ->toArray();
+    }
+
+    protected function getRoleModelClass(): string
+    {
+        return app(ScheduleNotificationRoleModelResolver::class)->resolve();
     }
 
     public function getModelsArray() : array
@@ -26,11 +33,11 @@ class TypeCreateStoreFieldsetsParameters extends FieldsetParametersFile
                     'name' => ['text' => 'string|required|max:255'],
                     'validity' => ['number' => 'numeric|nullable'],
                     'percentage_validity' => ['number' => 'numeric|nullable|min:0|max:100'],
-                    'allow_multiple' => ['boolean' => 'bool|required'],
+                    'allow_multiple' => ['boolean' => 'boolean|required'],
                     'measurement_unit_id' => [
                         'type' => 'select',
                         'multiple' => false,
-                        'rules' => 'string|nullable|exists:' . config('measurementunits.models.measurementUnit.table') . ',id',
+                        'rules' => 'string|required|exists:' . config('measurementunits.models.measurementUnit.table') . ',id',
                         'relation' => 'measurementUnit'
                     ]
                 ],
@@ -46,12 +53,20 @@ class TypeCreateStoreFieldsetsParameters extends FieldsetParametersFile
                                 'type' => 'select',
                                 'multiple' => false,
                                 'select2' => false,
-                                'rules' => 'string|nullable|in:' . implode(',', array_keys($this->getModelsArray())),
+                                'rules' => 'string|required|in:' . implode(',', array_keys($this->getModelsArray())),
                                 'possibleValuesArray' => $this->getModelsArray(),
                                 'roles' => ['superadmin', 'administrator']
                             ],
+                            'source' => [
+                                'type' => 'text',
+                                'rules' => 'string|nullable|max:255',
+                            ],
+                            'method' => [
+                                'type' => 'text',
+                                'rules' => 'string|nullable|max:255',
+                            ],
                         ],
-                        'rules' => 'array|nullable',
+                        'rules' => 'array|required|min:1|type_models_configuration',
                     ],
                 ],
                 'width' => ["1-3@l", '1-2@m']

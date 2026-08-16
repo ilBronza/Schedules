@@ -30,6 +30,7 @@ class TypeNotificationFieldsGroupParametersFile extends FieldsGroupParametersFil
                 'measurementUnit.name' => 'flat',
                 'urgency' => 'flat',
                 'repeat_every' => 'flat',
+                'last_repetition' => 'flat',
                 'repeatingMeasurementUnit.name' => 'flat',
 
                 'mySelfDelete' => 'links.delete'
