@@ -2,12 +2,14 @@
 
 namespace IlBronza\Schedules\Helpers\Applicators;
 
-use IlBronza\FileCabinet\Models\Dossierrow;
+use IlBronza\Schedules\Contracts\Schedulable;
+use IlBronza\Schedules\Integrations\LegacyDossierrowScheduleValueGetter;
 use IlBronza\Schedules\Models\Schedule;
 use IlBronza\Schedules\Models\Type;
+use IlBronza\Schedules\Services\TypeModelsConfigurationValidator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
+use RuntimeException;
 
 trait ScheduleApplicatorHelperGettersSettersTraits
 {
@@ -30,7 +32,7 @@ trait ScheduleApplicatorHelperGettersSettersTraits
 	 * create and assign a new Schedule based on schedule %type
 	 * 
 	 **/
-	public function initializeSchedule()
+	public function initializeSchedule(): void
 	{
 		$this->schedule = Schedule::getProjectClassName()::make();
 		$this->schedule->setType($this->getType());
@@ -54,6 +56,8 @@ trait ScheduleApplicatorHelperGettersSettersTraits
 			return null;
 
 		$this->schedule = $schedule;
+		$this->schedule->setRelation('type', $this->getType());
+		$this->schedule->setRelation('schedulable', $this->getModel());
 
 		return $this->schedule;
 	}
@@ -67,24 +71,26 @@ trait ScheduleApplicatorHelperGettersSettersTraits
 
 	public function modelHasSchedule() : bool
 	{
-		return count($this->getSchedules()) > 0;
+		return $this->getSchedules()->isNotEmpty();
 	}
 
-	public function checkRightsToAddSchedule()
+	public function checkRightsToAddSchedule(): void
 	{
-		if(! $this->getType()->allowMultiple())
-			if($this->modelHasSchedule())
-				throw new \Exception('Model ' . $this->getModel()->getName() . ' already have schedule ' . $this->getType()->getName());
+		if($this->getType()->allowMultiple())
+			return;
+
+		if(! $this->modelHasSchedule())
+			return;
+
+		throw new RuntimeException(
+			'Model ' . $this->getModel()->getName()
+			. ' already have schedule ' . $this->getType()->getName()
+		);
 	}
 
 	public function getScheduledModelClassname() : string
 	{
-		if($class = $this->getModel()->getMorphClass())
-			return $class;
-
-		return get_class(
-			$this->getModel()
-		);
+		return $this->getModel()->getMorphClass();
 	}
 
 	public function getType() : Type
@@ -110,24 +116,67 @@ trait ScheduleApplicatorHelperGettersSettersTraits
 	public function getModelSchedulesCurrentValueGetterMethod() : string
 	{
 		$modelsList = $this->getType()->getModelsValue();
+		$validator = app(TypeModelsConfigurationValidator::class);
 
 		foreach($modelsList as $modelParameters)
-			if(class_basename($modelParameters['model']) == $this->getScheduledModelClassname())
-			{
-				if($source = ($modelParameters['source'] ?? false))
-					return "get" . Str::studly($source);
+			if($this->modelParametersMatchScheduledModel($modelParameters))
+				return $validator->resolveValueGetterMethod($modelParameters);
 
-				if($modelParameters['method'] ?? false)
-					return $modelParameters['method'];
+		throw new RuntimeException(
+			'Model ' . $this->getScheduledModelClassname()
+			. ' not available for schedule ' . $this->getType()->getName()
+		);
+	}
 
-				throw new \Exception('I can\'t calculate the current value for the module\'s schedule. You need to declare a source field or a method name');
+	public function resolveModelScheduleCurrentValue(): mixed
+	{
+		$model = $this->getModel();
+		$legacyGetter = new LegacyDossierrowScheduleValueGetter();
+
+		if ($this->modelIsConfiguredOnType()) {
+			if (! $model instanceof Schedulable) {
+				throw new RuntimeException(
+					'Model ' . get_class($model)
+					. ' must implement ' . Schedulable::class
+					. ' to resolve schedule values'
+				);
 			}
 
-		if(($model = $this->getModel()) instanceof Dossierrow)
-			if($model->getFormrow()->isExpirationDate())
-				return 'getCurrentDate';
+			return $model->getScheduleCurrentValue(
+				$this->getModelSchedulesCurrentValueGetterMethod()
+			);
+		}
 
-		throw new \Exception('Model ' . $this->getScheduledModelClassname() . ' not available for schedule ' . $this->getType()->getName());
+		if ($legacyGetter->supports($model)) {
+			return $legacyGetter->getCurrentValue($model);
+		}
+
+		throw new RuntimeException(
+			'Model ' . $this->getScheduledModelClassname()
+			. ' not available for schedule ' . $this->getType()->getName()
+		);
+	}
+
+	protected function modelIsConfiguredOnType(): bool
+	{
+		foreach ($this->getType()->getModelsValue() as $modelParameters) {
+			if ($this->modelParametersMatchScheduledModel($modelParameters)) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	protected function modelParametersMatchScheduledModel(array $modelParameters): bool
+	{
+		if(! isset($modelParameters['model']))
+			throw new RuntimeException('Schedule model configuration is missing the model class');
+
+		$configuredModel = ltrim($modelParameters['model'], '\\');
+		$scheduledModel = ltrim(get_class($this->getModel()), '\\');
+
+		return $configuredModel === $scheduledModel;
 	}
 
 }

@@ -2,91 +2,134 @@
 
 namespace IlBronza\Schedules\Helpers\Applicators;
 
-use IlBronza\Schedules\Helpers\ScheduleApplicatorHelper;
+use IlBronza\Schedules\Models\Schedule;
 use IlBronza\Schedules\Models\Type;
-use IlBronza\Ukn\Ukn;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class BulkScheduleApplicatorHelper
 {
-	public Collection $scheduleTypes;
-	public Collection $models;
+    protected Collection $scheduleTypes;
+    protected Collection $models;
 
-	public bool $debug = true;
+    public function __construct()
+    {
+        $this->scheduleTypes = collect();
+        $this->models = collect();
+    }
 
-	public function __construct()
-	{
-		$this->scheduleTypes = collect();
-		$this->models = collect();
-	}
+    public static function applicateScheduleToModels(
+        Type $type,
+        Collection $models
+    ): Collection {
+        $helper = new static();
+        $helper->addScheduleType($type);
+        $helper->addModels($models);
 
-	public function hasDebugMode() : bool
-	{
-		return $this->debug;
-	}
+        return $helper->applicateBulk();
+    }
 
-	static function applicateScheduleToModels(Type $type, Collection $models)
-	{
-		$helper = new static();
+    public function addScheduleType(Type $type): void
+    {
+        $this->scheduleTypes->push($type);
+    }
 
-		$helper->addScheduleType($type);
-		$helper->addModels($models);
+    public function addModels(Collection $models): void
+    {
+        $models->each(
+            fn (Model $model) => $this->addModel($model)
+        );
+    }
 
-		return $helper->applicateBulk();
-	}
+    public function addModel(Model $model): void
+    {
+        $this->models->push($model);
+    }
 
-	public function addScheduleType(Type $type)
-	{
-		$this->scheduleTypes->push(
-			$type
-		);
-	}
+    public function getScheduleTypes(): Collection
+    {
+        return $this->scheduleTypes;
+    }
 
-	public function addModels(Collection $models)
-	{
-		foreach($models as $model)
-			$this->addModel($model);
-	}
+    public function getModels(): Collection
+    {
+        return $this->models;
+    }
 
-	public function addModel(Model $model)
-	{
-		$this->models->push($model);
-	}
+    public function applicateBulk(): Collection
+    {
+        return DB::transaction(function (): Collection {
+            $types = $this->lockTypes(
+                $this->orderedScheduleTypes()
+            );
+            $models = $this->lockModels(
+                $this->orderedModels()
+            );
 
-	public function getScheduleTypes() : Collection
-	{
-		return $this->scheduleTypes;
-	}
+            return $types->flatMap(
+                fn (Type $type): Collection => $models->map(
+                    fn (Model $model): Schedule => $this
+                        ->applicateScheduleToModel($type, $model)
+                )
+            );
+        });
+    }
 
-	public function getModels() : Collection
-	{
-		return $this->models;
-	}
+    protected function orderedScheduleTypes(): Collection
+    {
+        return $this->getScheduleTypes()
+            ->sortBy(fn (Type $type) => $type->getKey())
+            ->values();
+    }
 
-	public function applicateBulk()
-	{
-		foreach($this->getScheduleTypes() as $type)
-			foreach($this->getModels() as $model)
-				$this->applicateScheduleToModel($type, $model);
-	}
+    protected function orderedModels(): Collection
+    {
+        return $this->getModels()
+            ->sortBy(fn (Model $model) => [
+                $model->getMorphClass(),
+                $model->getKey(),
+            ])
+            ->values();
+    }
 
-	public function applicateScheduleToModel(Type $type, $model)
-	{
-		try
-		{
-			ScheduleApplicatorHelper::applicateScheduleToModel($type, $model);
-		}
-		catch(\Exception $e)
-		{
-			$errorMessage = 'Can\'t applicate schedule ' . $type->getName() . ' to ' . $model->getName() . ' because ' . $e->getMessage();
+    protected function lockTypes(Collection $types): Collection
+    {
+        return $types->map(
+            fn (Type $type): Type => $this->lockType($type)
+        );
+    }
 
-			if($this->hasDebugMode())
-				throw new \Exception($errorMessage);
+    protected function lockModels(Collection $models): Collection
+    {
+        return $models->map(
+            fn (Model $model): Model => $this->lockModel($model)
+        );
+    }
 
-			Ukn::e($errorMessage);
-			Log::critical($errorMessage);
-		}
-	}
+    protected function lockType(Type $type): Type
+    {
+        return $type
+            ->newQuery()
+            ->lockForUpdate()
+            ->findOrFail($type->getKey());
+    }
+
+    protected function lockModel(Model $model): Model
+    {
+        return $model
+            ->newQuery()
+            ->lockForUpdate()
+            ->findOrFail($model->getKey());
+    }
+
+    protected function applicateScheduleToModel(
+        Type $type,
+        Model $model
+    ): Schedule {
+        return ScheduleApplicatorHelper::applicateScheduleToModel(
+            $type,
+            $model
+        );
+    }
 }

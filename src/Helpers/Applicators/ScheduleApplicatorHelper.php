@@ -2,214 +2,208 @@
 
 namespace IlBronza\Schedules\Helpers\Applicators;
 
-use Carbon\Carbon;
-use IlBronza\Schedules\Helpers\Applicators\ScheduleApplicatorHelperGettersSettersTraits;
+use Closure;
 use IlBronza\Schedules\Helpers\ScheduleTypeNotificationHelper;
 use IlBronza\Schedules\Models\Schedule;
 use IlBronza\Schedules\Models\Type;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
-
-use function dd;
+use Illuminate\Support\Facades\DB;
 
 class ScheduleApplicatorHelper
 {
-	/**
-	 * usage:
-	 * 
-	 * 
-	 * 
-	 * 
-	 * 
-	 * 
-	 * 
-	 * 
-	 **/
-
-
-
-	use ScheduleApplicatorHelperGettersSettersTraits;
-
-	public Type $type;
-	public Model $model;
-	public Schedule $schedule;
-
-	/**
-	 * assign schedule type and model to helper
-	 * 
-	 * @param Type $type
-	 * @param Model $model
-	 * 
-	 * then initialize a new schedule model
-	 * 
-	 **/
-	public function __construct(Type $type, Model $model)
-	{
-		$this->setType($type);
-		$this->setModel($model);
-	}
-
-	public function applicateSchedule() : static
-	{
-		$this->checkRightsToAddSchedule();
-
-		$this->initializeSchedule();
-
-		return $this;
-	}
-
-//	/**
-//	 * this function get the current schedule value
-//	 * to be used to calculate the remaining time
-//	 * or the completion percentage
-//	 *
-//	 * @param  Schedule  $schedule
-//	 *
-//	 * @return mixed
-//	 */
-//	static function getCurrentValueFromSchedule(Schedule $schedule)
-//	{
-//		// dd('cossa serve questo');
-//
-//		$helper = new static($schedule->getType(), $schedule->getSchedulable());
-//
-//		return $helper->getModelScheduleCurrentValue();
-//	}
-
-	public function getModelSchedulesStartingValueGetterMethod() : string
-	{
-		return $this->getModelSchedulesCurrentValueGetterMethod();
-	}
-
-	public function getModelScheduleStartingValue() : mixed
-	{
-		$valueGetterMethod = $this->getModelSchedulesStartingValueGetterMethod();
-
-		return $this->getModel()->{$valueGetterMethod}();
-	}
-
-	public function associateScheduleAndNotifications() : Schedule
-	{
-		$this->getModel()->schedules()->save($this->schedule);
-
-		$typeNotificationHelper = new ScheduleTypeNotificationHelper(
-				$this->schedule
-			);
-
-		$typeNotifications = $this->getType()->getTypeNotifications();
-
-		foreach($typeNotifications as $typeNotification)
-			$typeNotificationHelper->associateNotification($typeNotification);
-
-		return $this->schedule;
-	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	public static function applicateScheduleToModel(Type $type, Model $model)
-	{
-		$helper = new static($type, $model);
-		$helper->applicateSchedule();
-
-		$modelScheduleStartingValue = $helper->getModelScheduleStartingValue();
-
-		$helper->schedule->setStarting(
-			$modelScheduleStartingValue
-		);
-
-		$helper->schedule->calculateDeadline();
-
-		return $helper->associateScheduleAndNotifications();
-	}
-
-	static function findOrApplicateStartingScheduleToModel(Type $type, Model $model, Carbon $startingTime)
-	{
-		$helper = new static($type, $model);
-
-		if(! $helper->getSchedule())
-			$helper->applicateSchedule();
-			throw new \Exception('creare schedule con applicator applicateEndingScheduleToModel');
-
-		$helper->schedule->setStarting(
-			$startingTime,
-			true
-		);
-
-		return $helper->associateScheduleAndNotifications();
-	}
-
-	public static function applicateStartingScheduleToModel(Type $type, Model $model, Carbon $startingTime)
-	{
-		$helper = new static($type, $model);
-		$helper->applicateSchedule();
-
-		$helper->schedule->setStarting(
-			$startingTime,
-			true
-		);
-
-		$helper->schedule->calculateDeadline();
-
-		return $helper->associateScheduleAndNotifications();
-	}
-
-	static function findOrApplicateEndingScheduleToModel(Type $type, Model $model, Carbon $deadline)
-	{
-		$helper = new static($type, $model);
-
-		if(! $helper->getSchedule())
-			$helper->applicateSchedule();
-			// dd('creare schedule con applicator applicateEndingScheduleToModel');
-
-		$helper->getSchedule()->setDeadline(
-			$deadline,
-			$save = true
-		);
-
-		return $helper->associateScheduleAndNotifications();
-	}
-
-	public static function applicateEndingScheduleToModel(Type $type, Model $model, Carbon $deadline)
-	{
-		$helper = new static($type, $model);
-		$helper->applicateSchedule();
-
-		$helper->getSchedule()->setDeadline(
-			$deadline,
-			$save = true
-		);
-
-		return $helper->associateScheduleAndNotifications();
-	}
-
-
+    use ScheduleApplicatorHelperGettersSettersTraits;
+
+    public Type $type;
+    public Model $model;
+    public Schedule $schedule;
+
+    public function __construct(Type $type, Model $model)
+    {
+        $this->setType($type);
+        $this->setModel($model);
+    }
+
+    public static function applicateScheduleToModel(
+        Type $type,
+        Model $model
+    ): Schedule {
+        return static::runAtomically(
+            $type,
+            $model,
+            fn (ScheduleApplicatorHelper $helper): Schedule => $helper->createFromModelValue()
+        );
+    }
+
+    public static function findOrApplicateStartingScheduleToModel(
+        Type $type,
+        Model $model,
+        mixed $startingValue
+    ): Schedule {
+        return static::runAtomically(
+            $type,
+            $model,
+            fn (ScheduleApplicatorHelper $helper): Schedule => $helper
+                ->findOrApplyStartingValue($startingValue)
+        );
+    }
+
+    public static function applicateStartingScheduleToModel(
+        Type $type,
+        Model $model,
+        mixed $startingValue
+    ): Schedule {
+        return static::runAtomically(
+            $type,
+            $model,
+            fn (ScheduleApplicatorHelper $helper): Schedule => $helper
+                ->createFromStartingValue($startingValue)
+        );
+    }
+
+    public static function findOrApplicateEndingScheduleToModel(
+        Type $type,
+        Model $model,
+        mixed $deadlineValue
+    ): Schedule {
+        return static::runAtomically(
+            $type,
+            $model,
+            fn (ScheduleApplicatorHelper $helper): Schedule => $helper
+                ->findOrApplyDeadlineValue($deadlineValue)
+        );
+    }
+
+    public static function applicateEndingScheduleToModel(
+        Type $type,
+        Model $model,
+        mixed $deadlineValue
+    ): Schedule {
+        return static::runAtomically(
+            $type,
+            $model,
+            fn (ScheduleApplicatorHelper $helper): Schedule => $helper
+                ->createFromDeadlineValue($deadlineValue)
+        );
+    }
+
+    protected static function runAtomically(
+        Type $type,
+        Model $model,
+        Closure $operation
+    ): Schedule {
+        return DB::transaction(function () use ($type, $model, $operation): Schedule {
+            $lockedModel = static::lockModel($model);
+            $helper = new static($type, $lockedModel);
+
+            return $operation($helper);
+        });
+    }
+
+    protected static function lockModel(Model $model): Model
+    {
+        return $model
+            ->newQuery()
+            ->lockForUpdate()
+            ->findOrFail($model->getKey());
+    }
+
+    public function createFromModelValue(): Schedule
+    {
+        return $this->createFromStartingValue(
+            $this->getModelScheduleStartingValue()
+        );
+    }
+
+    public function findOrApplyStartingValue(
+        mixed $startingValue
+    ): Schedule {
+        $this->initializeExistingOrNewSchedule();
+
+        return $this->applyStartingValue($startingValue);
+    }
+
+    public function createFromStartingValue(mixed $startingValue): Schedule
+    {
+        $this->initializeNewSchedule();
+
+        return $this->applyStartingValue($startingValue);
+    }
+
+    protected function applyStartingValue(mixed $startingValue): Schedule
+    {
+        $this->schedule->setStarting($startingValue);
+        $this->schedule->calculateDeadline(save: false);
+
+        return $this->persistScheduleWithNotifications();
+    }
+
+    public function findOrApplyDeadlineValue(
+        mixed $deadlineValue
+    ): Schedule {
+        $this->initializeExistingOrNewSchedule();
+
+        return $this->applyDeadlineValue($deadlineValue);
+    }
+
+    public function createFromDeadlineValue(mixed $deadlineValue): Schedule
+    {
+        $this->initializeNewSchedule();
+
+        return $this->applyDeadlineValue($deadlineValue);
+    }
+
+    protected function applyDeadlineValue(mixed $deadlineValue): Schedule
+    {
+        $this->schedule->setDeadline($deadlineValue);
+        $this->schedule->calculateStarting(save: false);
+
+        return $this->persistScheduleWithNotifications();
+    }
+
+    protected function initializeExistingOrNewSchedule(): void
+    {
+        if ($this->getSchedule()) {
+            return;
+        }
+
+        $this->initializeNewSchedule();
+    }
+
+    protected function initializeNewSchedule(): void
+    {
+        $this->checkRightsToAddSchedule();
+        $this->initializeSchedule();
+    }
+
+    public function getModelSchedulesStartingValueGetterMethod(): string
+    {
+        return $this->getModelSchedulesCurrentValueGetterMethod();
+    }
+
+    public function getModelScheduleStartingValue(): mixed
+    {
+        return $this->resolveModelScheduleCurrentValue();
+    }
+
+    protected function persistScheduleWithNotifications(): Schedule
+    {
+        $this->persistSchedule();
+        $this->createScheduledNotifications();
+
+        return $this->schedule;
+    }
+
+    protected function persistSchedule(): void
+    {
+        $this->getModel()->schedules()->save($this->schedule);
+    }
+
+    protected function createScheduledNotifications(): void
+    {
+        $helper = new ScheduleTypeNotificationHelper($this->schedule);
+
+        foreach ($this->getType()->getTypeNotifications() as $typeNotification) {
+            $helper->associateNotification($typeNotification);
+        }
+    }
 }
