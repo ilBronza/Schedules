@@ -13,7 +13,7 @@
     "keywords": ["Laravel", "Schedules"],
     "require": {
         "php": "^8.2",
-        "laravel/framework": "^11.0",
+        "laravel/framework": "^11.0 || ^12.0",
         "nesbot/carbon": "^3.0",
         "spatie/laravel-activitylog": "^4.0",
         "spatie/laravel-permission": "^6.0",
@@ -26,7 +26,7 @@
         "ilbronza/notifications": "^2.5"
     },
     "require-dev": {
-        "orchestra/testbench": "^9.0"
+        "orchestra/testbench": "^9.0 || ^10.0"
     },
     "suggest": {
         "ilbronza/filecabinet": "Enables the legacy Dossierrow expiration-date integration"

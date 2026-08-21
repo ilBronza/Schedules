@@ -3,6 +3,7 @@
 namespace IlBronza\Schedules;
 
 use IlBronza\Schedules\Console\Commands\EvaluateSchedulesCommand;
+use IlBronza\Schedules\Console\Commands\InvalidateSchedulesCommand;
 use IlBronza\Schedules\Contracts\ScheduleNotificationDispatcher;
 use IlBronza\Schedules\Http\Middleware\SchedulesMiddlewareRolesPermissions;
 use IlBronza\Schedules\Services\IlBronzaScheduleNotificationDispatcher;
@@ -141,6 +142,7 @@ class SchedulesServiceProvider extends ServiceProvider
 
         $this->commands([
             EvaluateSchedulesCommand::class,
+            InvalidateSchedulesCommand::class,
         ]);
 
         $this->registerEvaluatorSchedule();
