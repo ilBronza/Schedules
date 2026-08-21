@@ -6,181 +6,113 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up(): void
-    {
-        $schedules = config('schedules.models.schedule.table');
-        $types = config('schedules.models.type.table');
-        $typeNotifications = config('schedules.models.typeNotification.table');
-        $scheduledNotifications = config(
-            'schedules.models.scheduledNotification.table'
-        );
+	public function up() : void
+	{
+		$schedules = config('schedules.models.schedule.table');
+		$types = config('schedules.models.type.table');
+		$typeNotifications = config('schedules.models.typeNotification.table');
+		$scheduledNotifications = config('schedules.models.scheduledNotification.table');
 
-        $this->assertPackageTablesExist([
-            $schedules,
-            $types,
-            $typeNotifications,
-            $scheduledNotifications,
-        ]);
+		if(Schema::hasColumn($schedules, 'user_id'))
+			$this->dropColumnWithForeignKeys($schedules, 'user_id');
 
-        if (Schema::hasColumn($schedules, 'user_id')) {
-            Schema::table($schedules, function (Blueprint $table): void {
-                $table->dropForeign(['user_id']);
-                $table->dropColumn('user_id');
-            });
-        }
+		$this->widenNullableForeignString($schedules, 'type_id', $types);
+		$this->widenNullableString($schedules, 'schedulable_id');
 
-        $this->widenNullableForeignString(
-            $schedules,
-            'type_id',
-            $types
-        );
-        $this->widenNullableString($schedules, 'schedulable_id');
+		$this->widenNullableForeignString($typeNotifications, 'type_id', $types);
 
-        $this->widenNullableForeignString(
-            $typeNotifications,
-            'type_id',
-            $types
-        );
+		$this->widenNullableForeignString($scheduledNotifications, 'type_notification_id', $typeNotifications);
+	}
 
-        $this->widenNullableForeignString(
-            $scheduledNotifications,
-            'type_notification_id',
-            $typeNotifications
-        );
-    }
+	public function down() : void
+	{
+		$schedules = config('schedules.models.schedule.table');
+		$types = config('schedules.models.type.table');
+		$typeNotifications = config('schedules.models.typeNotification.table');
+		$scheduledNotifications = config('schedules.models.scheduledNotification.table');
 
-    public function down(): void
-    {
-        $schedules = config('schedules.models.schedule.table');
-        $types = config('schedules.models.type.table');
-        $typeNotifications = config('schedules.models.typeNotification.table');
-        $scheduledNotifications = config(
-            'schedules.models.scheduledNotification.table'
-        );
+		Schema::table($schedules, function(Blueprint $table)
+		{
+			$table->unsignedBigInteger('user_id')->nullable();
+			$table->foreign('user_id')->references('id')->on('users');
+		});
 
-        $this->assertPackageTablesExist([
-            $schedules,
-            $types,
-            $typeNotifications,
-            $scheduledNotifications,
-        ]);
+		$this->narrowNullableForeignUuid($schedules, 'type_id', $types);
+		$this->narrowNullableUuid($schedules, 'schedulable_id');
 
-        if (Schema::hasColumn($schedules, 'user_id')) {
-            throw new \RuntimeException(
-                "Cannot rollback upgrade: [{$schedules}.user_id] already exists."
-            );
-        }
+		$this->narrowNullableForeignUuid($typeNotifications, 'type_id', $types);
 
-        Schema::table($schedules, function (Blueprint $table): void {
-            $table->unsignedBigInteger('user_id')->nullable();
-            $table->foreign('user_id')->references('id')->on('users');
-        });
+		$this->narrowNullableForeignUuid($scheduledNotifications, 'type_notification_id', $typeNotifications);
+	}
 
-        $this->narrowNullableForeignUuid(
-            $schedules,
-            'type_id',
-            $types
-        );
-        $this->narrowNullableUuid($schedules, 'schedulable_id');
+	// Le foreign key vengono lette dallo schema: nei database v2.5.1 il nome può non seguire la convenzione o mancare del tutto
+	protected function dropForeignKeys(string $table, string $column) : void
+	{
+		foreach(Schema::getForeignKeys($table) as $foreignKey)
+		{
+			if(! in_array($column, (array) $foreignKey['columns']))
+				continue;
 
-        $this->narrowNullableForeignUuid(
-            $typeNotifications,
-            'type_id',
-            $types
-        );
+			Schema::table($table, function(Blueprint $blueprint) use ($foreignKey)
+			{
+				$blueprint->dropForeign($foreignKey['name']);
+			});
+		}
+	}
 
-        $this->narrowNullableForeignUuid(
-            $scheduledNotifications,
-            'type_notification_id',
-            $typeNotifications
-        );
-    }
+	protected function dropColumnWithForeignKeys(string $table, string $column) : void
+	{
+		$this->dropForeignKeys($table, $column);
 
-    /**
-     * @param  list<string>  $tables
-     */
-    protected function assertPackageTablesExist(array $tables): void
-    {
-        foreach ($tables as $table) {
-            if (! Schema::hasTable($table)) {
-                throw new \RuntimeException(
-                    "Upgrade from v2.5.1 requires table [{$table}] to exist."
-                );
-            }
-        }
-    }
+		Schema::table($table, function(Blueprint $blueprint) use ($column)
+		{
+			$blueprint->dropColumn($column);
+		});
+	}
 
-    protected function widenNullableForeignString(
-        string $table,
-        string $column,
-        string $foreignTable
-    ): void {
-        if (! Schema::hasColumn($table, $column)) {
-            throw new \RuntimeException(
-                "Upgrade from v2.5.1 expected column [{$table}.{$column}]."
-            );
-        }
+	protected function widenNullableForeignString(string $table, string $column, string $foreignTable) : void
+	{
+		$this->dropForeignKeys($table, $column);
 
-        Schema::table($table, function (Blueprint $blueprint) use ($column): void {
-            $blueprint->dropForeign([$column]);
-        });
+		Schema::table($table, function(Blueprint $blueprint) use ($column)
+		{
+			$blueprint->string($column)->nullable()->change();
+		});
 
-        Schema::table($table, function (Blueprint $blueprint) use ($column): void {
-            $blueprint->string($column)->nullable()->change();
-        });
+		Schema::table($table, function(Blueprint $blueprint) use ($column, $foreignTable)
+		{
+			$blueprint->foreign($column)->references('id')->on($foreignTable);
+		});
+	}
 
-        Schema::table($table, function (Blueprint $blueprint) use ($column, $foreignTable): void {
-            $blueprint->foreign($column)->references('id')->on($foreignTable);
-        });
-    }
+	protected function widenNullableString(string $table, string $column) : void
+	{
+		Schema::table($table, function(Blueprint $blueprint) use ($column)
+		{
+			$blueprint->string($column)->nullable()->change();
+		});
+	}
 
-    protected function widenNullableString(string $table, string $column): void
-    {
-        if (! Schema::hasColumn($table, $column)) {
-            throw new \RuntimeException(
-                "Upgrade from v2.5.1 expected column [{$table}.{$column}]."
-            );
-        }
+	protected function narrowNullableForeignUuid(string $table, string $column, string $foreignTable) : void
+	{
+		$this->dropForeignKeys($table, $column);
 
-        Schema::table($table, function (Blueprint $blueprint) use ($column): void {
-            $blueprint->string($column)->nullable()->change();
-        });
-    }
+		Schema::table($table, function(Blueprint $blueprint) use ($column)
+		{
+			$blueprint->uuid($column)->nullable()->change();
+		});
 
-    protected function narrowNullableForeignUuid(
-        string $table,
-        string $column,
-        string $foreignTable
-    ): void {
-        if (! Schema::hasColumn($table, $column)) {
-            throw new \RuntimeException(
-                "Rollback expected column [{$table}.{$column}]."
-            );
-        }
+		Schema::table($table, function(Blueprint $blueprint) use ($column, $foreignTable)
+		{
+			$blueprint->foreign($column)->references('id')->on($foreignTable);
+		});
+	}
 
-        Schema::table($table, function (Blueprint $blueprint) use ($column): void {
-            $blueprint->dropForeign([$column]);
-        });
-
-        Schema::table($table, function (Blueprint $blueprint) use ($column): void {
-            $blueprint->uuid($column)->nullable()->change();
-        });
-
-        Schema::table($table, function (Blueprint $blueprint) use ($column, $foreignTable): void {
-            $blueprint->foreign($column)->references('id')->on($foreignTable);
-        });
-    }
-
-    protected function narrowNullableUuid(string $table, string $column): void
-    {
-        if (! Schema::hasColumn($table, $column)) {
-            throw new \RuntimeException(
-                "Rollback expected column [{$table}.{$column}]."
-            );
-        }
-
-        Schema::table($table, function (Blueprint $blueprint) use ($column): void {
-            $blueprint->uuid($column)->nullable()->change();
-        });
-    }
+	protected function narrowNullableUuid(string $table, string $column) : void
+	{
+		Schema::table($table, function(Blueprint $blueprint) use ($column)
+		{
+			$blueprint->uuid($column)->nullable()->change();
+		});
+	}
 };
