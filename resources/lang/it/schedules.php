@@ -6,4 +6,5 @@ return [
 	'list' => 'Scadenze',
 	'managedSuccessfully' => '{1} Scadenza gestita correttamente|[2,*] :count scadenze gestite correttamente',
 	'manageSelected' => 'Segna come gestite',
+    'type' => 'Tipo di scadenza',
 ];
